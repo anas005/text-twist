@@ -1,0 +1,22 @@
+{
+  "name": "word-game",
+  "version": "0.0.0",
+  "description": "A word game",
+  "main": "start.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/anas005/word-game.git"
+  },
+  "keywords": [
+    "word",
+    "game"
+  ],
+  "author": "Anas",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/anas005/word-game/issues"
+  }
+}
