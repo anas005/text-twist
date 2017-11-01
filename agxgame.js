@@ -1,5 +1,10 @@
 var io;
 var gameSocket;
+const words = require("./lib/words.js")
+
+let wordPool = JSON.parse(
+ require('fs').readFileSync('./wordPool.json')
+);
 
 /**
  * This function is called by index.js to initialize a new game instance.
@@ -10,11 +15,12 @@ var gameSocket;
 exports.initGame = function(sio, socket){
     io = sio;
     gameSocket = socket;
+    // gameSocket.emit('connected', { message: "You are connected!", word: words.randomWord() });
     gameSocket.emit('connected', { message: "You are connected!" });
 
     // Host Events
     gameSocket.on('hostCreateNewGame', hostCreateNewGame);
-    gameSocket.on('hostRoomFull', hostPrepareGame);
+    gameSocket.on('hostStartNewGame', hostPrepareGame);
     gameSocket.on('hostCountdownFinished', hostStartGame);
     gameSocket.on('hostNextRound', hostNextRound);
 
@@ -33,19 +39,19 @@ exports.initGame = function(sio, socket){
 /**
  * The 'START' button was clicked and 'hostCreateNewGame' event occurred.
  */
-function hostCreateNewGame() {
+function hostCreateNewGame(data) {
     // Create a unique Socket.IO Room
     var thisGameId = ( Math.random() * 100000 ) | 0;
 
     // Return the Room ID (gameId) and the socket ID (mySocketId) to the browser client
-    this.emit('newGameCreated', {gameId: thisGameId, mySocketId: this.id});
+    this.emit('newGameCreated', {gameId: thisGameId, mySocketId: this.id, roomName: data.name});
 
     // Join the Room and wait for the players
     this.join(thisGameId.toString());
 };
 
 /*
- * Two players have joined. Alert the host!
+ * All players have joined. Start the game!
  * @param gameId The game ID / room ID
  */
 function hostPrepareGame(gameId) {
@@ -54,7 +60,7 @@ function hostPrepareGame(gameId) {
         mySocketId : sock.id,
         gameId : gameId
     };
-    //console.log("All Players Present. Preparing game...");
+    console.log("All Players Ready. Preparing game...");
     io.sockets.in(data.gameId).emit('beginNewGame', data);
 }
 
@@ -93,7 +99,7 @@ function hostNextRound(data) {
  * @param data Contains data entered via player's input - playerName and gameId.
  */
 function playerJoinGame(data) {
-    //console.log('Player ' + data.playerName + 'attempting to join game: ' + data.gameId );
+    console.log('Player ' + data.playerName + 'attempting to join game: ' + data.gameId );
 
     // A reference to the player's Socket.IO socket object
     var sock = this;
@@ -168,26 +174,31 @@ function sendWord(wordPoolIndex, gameId) {
  * @param i The index of the wordPool.
  * @returns {{round: *, word: *, answer: *, list: Array}}
  */
-function getWordData(i){
+function getWordData(i) {
     // Randomize the order of the available words.
     // The first element in the randomized array will be displayed on the host screen.
     // The second element will be hidden in a list of decoys as the correct answer
-    var words = shuffle(wordPool[i].words);
+    // var allWords = shuffle(wordPool[i].words);
+    var allWords = shuffle(Object.keys(wordPool));
+    var currentWord = allWords.shift();
 
     // Randomize the order of the decoy words and choose the first 5
-    var decoys = shuffle(wordPool[i].decoys).slice(0,5);
+    // var decoys = shuffle(wordPool[i].decoys).slice(0,5);
 
     // Pick a random spot in the decoy list to put the correct answer
-    var rnd = Math.floor(Math.random() * 5);
-    decoys.splice(rnd, 0, words[1]);
+    // var rnd = Math.floor(Math.random() * 5);
+    // decoys.splice(rnd, 0, allWords[1]);
 
     // Package the words into a single object.
     var wordData = {
         round: i,
-        word : words[0],   // Displayed Word
-        answer : words[1], // Correct Answer
-        list : decoys      // Word list for player (decoys and answer)
+        // word : words[0],   // Displayed Word
+        word : currentWord,   // Displayed Word
+        answers : allWords[currentWord], // Correct Answers
+        list : []      // Word list for player (decoys and answer)
     };
+
+    delete wordPool[currentWord];
 
     return wordData;
 }
@@ -226,6 +237,8 @@ function shuffle(array) {
  *
  * @type {Array}
  */
+
+/*
 var wordPool = [
     {
         "words"  : [ "sale","seal","ales","leas" ],
@@ -277,3 +290,4 @@ var wordPool = [
         "decoys" : [ "snout","tongs","stent","tense","terns","santo","stony","toons","snort","stint" ]
     }
 ]
+*/

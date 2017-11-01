@@ -318,4 +318,11 @@ html, body {
     bottom: 0;
 }
 
+.details {
+    text-align: center;
+    font-size: 2em;
+}
 
+#playerName {
+    font-size: 1em;
+}

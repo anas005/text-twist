@@ -1,14 +1,7 @@
-var fs = require('fs');
+// var fs = require('fs');
+// console.log(fs.readFileSync('wordPool.json', "UTF-8"))
+
 const words = require("./lib/words.js")
-
-let wordPool = {};
-
-// for (let i = 0; i < 10; i++) {
-for (let i = 0; i < 3; i++) {
-	let randomWord = words.randomWord();
-	wordPool[randomWord] = words.allWords(randomWord);
-}
-
-wordPool = JSON.stringify(wordPool);
-
-fs.writeFile('wordPool.json', wordPool, 'utf8', () => console.log("File has been succuessfully written!!!"));
+let random_word = words.randomWord();
+console.log(words.allWords(random_word), random_word);
+console.log(words.allWords("farmer"));

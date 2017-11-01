@@ -25,11 +25,15 @@
         <div class="titleWrapper">
 
             <div class="title">
-                ANAGRAMMATIX
+                WORD GAME
             </div>
-
+<!--
+            <div class="details">
+                Enter your name:
+                <input type="text" id="playerName" />
+            </div>
+ -->
             <div class="buttons">
-
                 <button id="btnCreateGame" class="btn left">CREATE</button>
                 <button id="btnJoinGame" class="btn right">JOIN</button>
                 <div style="clear:both"></div>
@@ -43,13 +47,18 @@
     <script id="create-game-template" type="text/template">
         <div class="createGameWrapper">
 
-            <div class="info">Open this site on your mobile device:</div>
-            <div id="gameURL" class="infoBig">Error!</div>
+            <div class="info">Wait for other players to join in your room.</div>
+            <div id="roomName" class="infoBig"></div>
 
-            <div class="info">Then click <strong>JOIN</strong> and <br/> enter the following Game ID:</div>
+            <div class="info">They can join by entering the following Game ID:</div>
             <div id="spanNewGameCode" class="gameId">Error!</div>
 
             <div id="playersWaiting"></div>
+
+            <div class="info buttons">
+                <button id="btnStart" class="btn">Start Game</button>
+            </div>
+
         </div>
     </script>
 
@@ -67,7 +76,7 @@
             </div>
 
             <div class="info buttons">
-                <button id="btnStart" class="btn">Start</button>
+                <button id="btnReady" class="btn">Ready</button>
                 <div id="playerWaitingMessage"></div>
             </div>
         </div>
@@ -85,6 +94,10 @@
             <div id="player2Score" class="playerScore">
                 <span class="playerName">Player 2</span><span class="score">0</span>
             </div>
+        </div>
+        <div id="answer">
+            <input type="text" id="answerText">
+            <button id="submitAnswer">Submit</button>
         </div>
     </script>
 
