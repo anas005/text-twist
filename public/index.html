@@ -67,7 +67,7 @@
         <div class="joinGameWrapper">
             <div class="info">
                 <label for="inputPlayerName">Your Name:</label>
-                <input id="inputPlayerName" type="text" />
+                <input id="inputPlayerName" type="text" value="Xoc"/>
             </div>
 
             <div class="info">
@@ -91,6 +91,9 @@
             <div id="player1Score" class="playerScore">
                 <span class="score">0</span><span class="playerName">Player 1</span>
             </div>
+            <div id="time">
+                <span></span>
+            </div>
             <div id="player2Score" class="playerScore">
                 <span class="playerName">Player 2</span><span class="score">0</span>
             </div>
@@ -99,6 +102,28 @@
             <input type="text" id="answerText">
             <button id="submitAnswer">Submit</button>
         </div>
+    </script>
+
+    <script id="game-board-template" type="text/template">
+        <div id="main">
+            <table id="mainTable">
+                <tbody>
+                    <tr></tr>
+                </tbody>
+            </table>
+            <br/>
+            <table id="shuffledTable">
+                <tbody>
+                    <tr></tr>
+                </tbody>
+            </table>
+            <div id="buttonsDiv">
+                <button class="boardBtn" id="shuffle">Shuffle</button>
+                <button class="boardBtn" id="check">Check</button>
+                <button class="boardBtn" id="reset">Reset</button>
+            </div>
+        </div>
+        <div id="allWords"></div>
     </script>
 
     <!-- JavaScript Libraries -->

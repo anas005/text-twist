@@ -1,10 +1,7 @@
 var io;
 var gameSocket;
+var rooms = {};
 const words = require("./lib/words.js")
-
-let wordPool = JSON.parse(
- require('fs').readFileSync('./wordPool.json')
-);
 
 /**
  * This function is called by index.js to initialize a new game instance.
@@ -12,10 +9,11 @@ let wordPool = JSON.parse(
  * @param sio The Socket.IO library
  * @param socket The socket object for the connected client.
  */
-exports.initGame = function(sio, socket){
+exports.initGame = function(sio, socket, rooms) {
     io = sio;
     gameSocket = socket;
-    // gameSocket.emit('connected', { message: "You are connected!", word: words.randomWord() });
+    // rooms = rooms;
+    // On new connection
     gameSocket.emit('connected', { message: "You are connected!" });
 
     // Host Events
@@ -28,6 +26,37 @@ exports.initGame = function(sio, socket){
     gameSocket.on('playerJoinGame', playerJoinGame);
     gameSocket.on('playerAnswer', playerAnswer);
     gameSocket.on('playerRestart', playerRestart);
+
+    gameSocket.on('checkWord', checkWord);
+
+}
+
+function checkWord(data) {
+    console.log("*** checkWord ***");
+    let word = data.word.toLowerCase();
+    console.log(word);
+
+    let thisRoom = this.manager.rooms[data.gameId];
+
+    if (!thisRoom.gameStarted) return
+
+    let scoreBoard = thisRoom.scoreBoard;
+    let wordData = thisRoom.wordData;
+
+    let wordIndex = wordData.answers.indexOf(word);
+
+    if (wordIndex !== -1 && !thisRoom.foundWords[word]) {
+        scoreBoard[this.id].score += word.length;
+        thisRoom.foundWords[word] = true;
+    }
+
+    console.log(scoreBoard)
+
+    io.sockets.in(data.gameId).emit("wordChecked", {
+        scoreBoard: scoreBoard,
+        index: wordIndex,
+        word: word
+    })
 }
 
 /* *******************************
@@ -45,22 +74,36 @@ function hostCreateNewGame(data) {
 
     // Return the Room ID (gameId) and the socket ID (mySocketId) to the browser client
     this.emit('newGameCreated', {gameId: thisGameId, mySocketId: this.id, roomName: data.name});
-
     // Join the Room and wait for the players
     this.join(thisGameId.toString());
+    // rooms = {}
+    // rooms[data.gameId] = {}
+    this.manager.rooms[thisGameId] = {
+        foundWords: {},
+        gameStarted: false,
+        scoreBoard: {
+            [this.id]: {
+                name: data.name,
+                score: 0
+            },
+        }
+    }
+    console.log(this.manager.rooms);
 };
 
 /*
  * All players have joined. Start the game!
  * @param gameId The game ID / room ID
  */
-function hostPrepareGame(gameId) {
+function hostPrepareGame(data) {
     var sock = this;
     var data = {
         mySocketId : sock.id,
-        gameId : gameId
+        gameId : data.gameId,
+        scoreBoard: this.manager.rooms[data.gameId].scoreBoard
     };
     console.log("All Players Ready. Preparing game...");
+    console.log(this.manager.rooms[data.gameId].scoreBoard)
     io.sockets.in(data.gameId).emit('beginNewGame', data);
 }
 
@@ -70,8 +113,43 @@ function hostPrepareGame(gameId) {
  */
 function hostStartGame(gameId) {
     console.log('Game Started.');
-    sendWord(0,gameId);
+    this.manager.rooms[gameId].gameStarted = true;
+    sendWord.call(this, 0, gameId);
+    startTimer.call(this, gameId);
 };
+
+/*
+ * The Countdown timer
+ * @param gameId The game ID / room ID
+ */
+function startTimer(gameId) {
+    console.log('inside startTimer');
+    let socket = this;
+    var countdown = 10;
+    setInterval(function() {
+      countdown--;
+      io.sockets.emit('timer', { countdown: countdown });
+      if (countdown <= 0) {
+        endGame.call(socket, gameId);
+        clearInterval(this);
+      }
+    }, 1000);
+};
+
+function endGame(gameId) {
+    console.log('inside endGame');
+    this.manager.rooms[gameId].gameStarted = false;
+    let scoreBoard = this.manager.rooms[gameId].scoreBoard;
+    let winner = findWinner(scoreBoard);
+    io.sockets.in(gameId).emit('endGame', { scoreBoard: scoreBoard, winner: winner });
+}
+
+function findWinner(scoreBoard) {
+    let players = Object.keys(scoreBoard);
+    if (scoreBoard[players[0]].score > scoreBoard[players[1]].score)
+        return scoreBoard[players[0]].name;
+    return scoreBoard[players[1]].name;
+}
 
 /**
  * A player answered correctly. Time for the next word.
@@ -80,7 +158,7 @@ function hostStartGame(gameId) {
 function hostNextRound(data) {
     if(data.round < wordPool.length ){
         // Send a new set of words back to the host and players.
-        sendWord(data.round, data.gameId);
+        sendWord.call(this, data.round, data.gameId);
     } else {
         // If the current round exceeds the number of words, send the 'gameOver' event.
         io.sockets.in(data.gameId).emit('gameOver',data);
@@ -99,7 +177,7 @@ function hostNextRound(data) {
  * @param data Contains data entered via player's input - playerName and gameId.
  */
 function playerJoinGame(data) {
-    console.log('Player ' + data.playerName + 'attempting to join game: ' + data.gameId );
+    console.log('Player ' + data.playerName + ' attempting to join game: ' + data.gameId );
 
     // A reference to the player's Socket.IO socket object
     var sock = this;
@@ -115,10 +193,19 @@ function playerJoinGame(data) {
         // Join the room
         sock.join(data.gameId);
 
-        //console.log('Player ' + data.playerName + ' joining game: ' + data.gameId );
+        console.log('Player ' + data.playerName + ' joining game: ' + data.gameId );
 
         // Emit an event notifying the clients that the player has joined the room.
         io.sockets.in(data.gameId).emit('playerJoinedRoom', data);
+
+        console.log(this.manager.rooms[data.gameId])
+
+        this.manager.rooms[data.gameId].scoreBoard[this.id] = {
+            name: data.playerName,
+            score: 0
+        },
+
+        console.log(this.manager.rooms[data.gameId].scoreBoard)
 
     } else {
         // Otherwise, send an error message back to the player.
@@ -163,7 +250,7 @@ function playerRestart(data) {
  * @param gameId The room identifier
  */
 function sendWord(wordPoolIndex, gameId) {
-    var data = getWordData(wordPoolIndex);
+    var data = getWordData.call(this, gameId);
     io.sockets.in(data.gameId).emit('newWordData', data);
 }
 
@@ -174,32 +261,17 @@ function sendWord(wordPoolIndex, gameId) {
  * @param i The index of the wordPool.
  * @returns {{round: *, word: *, answer: *, list: Array}}
  */
-function getWordData(i) {
-    // Randomize the order of the available words.
-    // The first element in the randomized array will be displayed on the host screen.
-    // The second element will be hidden in a list of decoys as the correct answer
-    // var allWords = shuffle(wordPool[i].words);
-    var allWords = shuffle(Object.keys(wordPool));
-    var currentWord = allWords.shift();
+function getWordData(gameId) {
+    let randomWord = words.randomWord(7);
+    let allWords = words.allWords(randomWord);
 
-    // Randomize the order of the decoy words and choose the first 5
-    // var decoys = shuffle(wordPool[i].decoys).slice(0,5);
-
-    // Pick a random spot in the decoy list to put the correct answer
-    // var rnd = Math.floor(Math.random() * 5);
-    // decoys.splice(rnd, 0, allWords[1]);
-
-    // Package the words into a single object.
     var wordData = {
-        round: i,
-        // word : words[0],   // Displayed Word
-        word : currentWord,   // Displayed Word
-        answers : allWords[currentWord], // Correct Answers
-        list : []      // Word list for player (decoys and answer)
+        // round: i,
+        word : shuffle(randomWord.split("")).join("").toUpperCase(),   // Displayed Word
+        answers : allWords, // Correct Answers
+        allWordsLength : allWords.map(word => word.length), // Correct Answers
     };
-
-    delete wordPool[currentWord];
-
+    this.manager.rooms[gameId].wordData = wordData;
     return wordData;
 }
 
@@ -227,67 +299,3 @@ function shuffle(array) {
 
     return array;
 }
-
-/**
- * Each element in the array provides data for a single round in the game.
- *
- * In each round, two random "words" are chosen as the host word and the correct answer.
- * Five random "decoys" are chosen to make up the list displayed to the player.
- * The correct answer is randomly inserted into the list of chosen decoys.
- *
- * @type {Array}
- */
-
-/*
-var wordPool = [
-    {
-        "words"  : [ "sale","seal","ales","leas" ],
-        "decoys" : [ "lead","lamp","seed","eels","lean","cels","lyse","sloe","tels","self" ]
-    },
-
-    {
-        "words"  : [ "item","time","mite","emit" ],
-        "decoys" : [ "neat","team","omit","tame","mate","idem","mile","lime","tire","exit" ]
-    },
-
-    {
-        "words"  : [ "spat","past","pats","taps" ],
-        "decoys" : [ "pots","laps","step","lets","pint","atop","tapa","rapt","swap","yaps" ]
-    },
-
-    {
-        "words"  : [ "nest","sent","nets","tens" ],
-        "decoys" : [ "tend","went","lent","teen","neat","ante","tone","newt","vent","elan" ]
-    },
-
-    {
-        "words"  : [ "pale","leap","plea","peal" ],
-        "decoys" : [ "sale","pail","play","lips","slip","pile","pleb","pled","help","lope" ]
-    },
-
-    {
-        "words"  : [ "races","cares","scare","acres" ],
-        "decoys" : [ "crass","scary","seeds","score","screw","cager","clear","recap","trace","cadre" ]
-    },
-
-    {
-        "words"  : [ "bowel","elbow","below","beowl" ],
-        "decoys" : [ "bowed","bower","robed","probe","roble","bowls","blows","brawl","bylaw","ebola" ]
-    },
-
-    {
-        "words"  : [ "dates","stead","sated","adset" ],
-        "decoys" : [ "seats","diety","seeds","today","sited","dotes","tides","duets","deist","diets" ]
-    },
-
-    {
-        "words"  : [ "spear","parse","reaps","pares" ],
-        "decoys" : [ "ramps","tarps","strep","spore","repos","peris","strap","perms","ropes","super" ]
-    },
-
-    {
-        "words"  : [ "stone","tones","steno","onset" ],
-        "decoys" : [ "snout","tongs","stent","tense","terns","santo","stony","toons","snort","stint" ]
-    }
-]
-*/

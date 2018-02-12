@@ -2,6 +2,16 @@
 jQuery(function($){
     'use strict';
 
+    $.fn.insertAt = function(index, $parent) {
+        return this.each(function() {
+            if (index === 0) {
+                $parent.prepend(this);
+            } else {
+                $parent.children().eq(index - 1).after(this);
+            }
+        });
+    };
+
     /**
      * All the code relevant to Socket.IO is collected in the IO namespace.
      *
@@ -31,6 +41,9 @@ jQuery(function($){
             IO.socket.on('hostCheckAnswer', IO.hostCheckAnswer);
             IO.socket.on('gameOver', IO.gameOver);
             IO.socket.on('error', IO.error );
+            IO.socket.on('wordChecked', IO.wordChecked );
+            IO.socket.on('timer', IO.timer );
+            IO.socket.on('endGame', IO.endGame );
         },
 
         /**
@@ -56,11 +69,11 @@ jQuery(function($){
          * @param data {{playerName: string, gameId: int, mySocketId: int}}
          */
         playerJoinedRoom : function(data) {
-            // When a player joins a room, do the updateWaitingScreen funciton.
+            // When a player joins a room, do the updateWaitingScreen function.
             // There are two versions of this function: one for the 'host' and
             // another for the 'player'.
             //
-            // So on the 'host' browser window, the App.Host.updateWiatingScreen function is called.
+            // So on the 'host' browser window, the App.Host.updateWaitingScreen function is called.
             // And on the player's browser, App.Player.updateWaitingScreen is called.
             App[App.myRole].updateWaitingScreen(data);
         },
@@ -70,7 +83,7 @@ jQuery(function($){
          * @param data
          */
         beginNewGame : function(data) {
-            App[App.myRole].gameCountdown(data);
+            App.Host.gameCountdown(data);
         },
 
         /**
@@ -95,6 +108,19 @@ jQuery(function($){
             }
         },
 
+        wordChecked : function(data) {
+            data.word = data.word.toUpperCase();
+            console.log(data);
+            App.updateScoreBoard(data.scoreBoard);
+            let wordIndex = data.index;
+            if (wordIndex !== -1) {
+                $("#allWords table").eq(wordIndex).find("td").each(function(i) {
+                    $(this).text(data.word[i]).addClass("correctLetter");
+                });
+            }
+            App.resetLetters();
+        },
+
         /**
          * Let everyone know the game has ended.
          * @param data
@@ -109,7 +135,23 @@ jQuery(function($){
          */
         error : function(data) {
             alert(data.message);
-        }
+        },
+
+        timer: function(data) {
+            let time = data.countdown;
+            time = (Math.floor(time/60)) + ":" + (time%60)
+
+            let timerPattern = /^\d+|\d+$/g;
+
+            $("#time").text(time.replace(timerPattern, function padZero(value) {
+              return ("0" + value).slice(-2);
+            }));
+        },
+
+        endGame: function(data) {
+            App.updateScoreBoard(data.scoreBoard);
+            alert(data.winner + " won the game!");
+        },
 
     };
 
@@ -167,6 +209,7 @@ jQuery(function($){
             App.$templateIntroScreen = $('#intro-screen-template').html();
             App.$templateNewGame = $('#create-game-template').html();
             App.$templateJoinGame = $('#join-game-template').html();
+            App.$templateGameBoard = $('#game-board-template').html();
             App.$hostGame = $('#host-game-template').html();
         },
 
@@ -174,6 +217,9 @@ jQuery(function($){
          * Create some click handlers for the various buttons that appear on-screen.
          */
         bindEvents: function () {
+
+            App.$doc.on('keydown', App.handleKeyPress),
+
             // Host
             App.$doc.on('click', '#btnCreateGame', App.Host.onCreateClick);
             App.$doc.on('click', '#btnStart',App.Host.onStartClick);
@@ -181,11 +227,19 @@ jQuery(function($){
             // Player
             App.$doc.on('click', '#btnJoinGame', App.Player.onJoinClick);
             App.$doc.on('click', '#btnReady', App.Player.onPlayerReadyClick);
-            App.$doc.on('click', '.btnAnswer',App.Player.onPlayerAnswerClick);
+            App.$doc.on('click', '.btnAnswer', App.Player.onPlayerAnswerClick);
             App.$doc.on('click', '#btnPlayerRestart', App.Player.onPlayerRestart);
 
             // Common
-            App.$doc.on('click', '#submitAnswer',App.checkAnswer);
+            // debugger
+            App.$doc.on('click', '#submitAnswer', App.checkAnswer);
+            App.$doc.on('click', '#shuffle', App.shuffleLetters);
+            App.$doc.on('click', '#check', App.checkWord);
+            App.$doc.on('click', '#reset', App.resetLetters);
+
+
+            App.$doc.on('click', '#mainTable td:not(.empty), #shuffledTable td:not(.empty)', App.handleLetterClick);
+
         },
 
         /* *************************************
@@ -201,6 +255,118 @@ jQuery(function($){
             App.doTextFit('.title');
         },
 
+        handleKeyPress: function(e) {
+            if (e.keyCode === 13) {
+                $("#check").click();
+                return;
+            }
+            if (e.keyCode === 8) {
+                $("#mainTable .letter:last").click();
+                return;
+            }
+            let key = String.fromCharCode(e.keyCode);
+            if( (/^[a-z]$/i).test(key) ) {
+                $("#shuffledTable .letter").each(function() {
+                    if ($(this).text() === key) {
+                        $(this).click();
+                        return false;
+                    }
+                });
+            }
+        },
+
+        generateBoard: function(word, allWordsLength) {
+            let mainRow = $("#mainTable tr").empty(),
+                shuffledRow = $("#shuffledTable tr").empty();
+
+            for (let i = 0; i < word.length; i++) {
+                mainRow.append($("<td></td>").addClass("empty"));
+                shuffledRow.append($("<td></td>").addClass("letter").text(word[i]));
+            }
+
+            $("#allWords").empty();
+            allWordsLength.forEach(function(length) {
+                let table = $("<table></table>");
+                let row = $("<tr></tr>").append("<td></td>".repeat(length));
+                table.append(row);
+                $("#allWords").append(table);
+            });
+        },
+
+        // initScoreBoard: function(scoreBoard) {
+        //     let socketIds = Object.keys(scoreBoard);
+        //     $(".playerScore").each(function(index){
+        //         $(this).data("socketID", socketIds[index]);
+        //         $(this).find(".score").text(scoreBoard[socketIds[index]].score)
+        //         $(this).find(".playerName").text(scoreBoard[socketIds[index]].name)
+        //     });
+        // },
+
+        updateScoreBoard: function(scoreBoard) {
+            let socketIds = Object.keys(scoreBoard);
+            $(".playerScore").each(function(index){
+                $(this).data("socketID", socketIds[index]);
+                $(this).find(".score").text(scoreBoard[socketIds[index]].score)
+                $(this).find(".playerName").text(scoreBoard[socketIds[index]].name)
+            });
+        },
+
+        shuffle: function(array) {
+          var currentIndex = array.length
+            , temporaryValue
+            , randomIndex
+            ;
+
+          // While there remain elements to shuffle...
+          while (0 !== currentIndex) {
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+
+            // And swap it with the current element.
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+          }
+
+          return array;
+        },
+
+        shuffleLetters: function() {
+            let letters = $("#shuffledTable td").toArray();
+            App.shuffle(letters);
+            for (let i = 0; i < letters.length; i++) {
+                $("#shuffledTable tr").append(letters[i]);
+            }
+        },
+
+        checkWord: function() {
+            console.log("Check word...");
+            IO.socket.emit('checkWord', {word: $("#mainTable .letter").text(), gameId: App.gameId});
+        },
+
+        resetLetters: function() {
+            $("#mainTable .letter").each(function() {
+                App.swap($(this), $("#shuffledTable .empty:eq(0)"));
+            });
+        },
+
+        swap: function(e1, e2) {
+            let e1Index = e1.index();
+            let e2Index = e2.index();
+            let e1Parent = e1.parent();
+            let e2Parent = e2.parent();
+            e1.insertAt(e2Index, e2Parent);
+            e2.insertAt(e1Index, e1Parent);
+        },
+
+        handleLetterClick: function() {
+            let thisTableId = $(this).closest("table").attr("id");
+            let position = thisTableId === "mainTable" ? "last" : "first";
+            let thisParent = $(this).parent();
+            App.swap($(this), $("div#main table:not(#"+thisTableId+") td.empty:"+position));
+        },
 
         /* *******************************
            *         HOST CODE           *
@@ -245,7 +411,7 @@ jQuery(function($){
              */
             onStartClick: function () {
                 // console.log('Clicked "Start Game"');
-                IO.socket.emit('hostStartNewGame');
+                IO.socket.emit('hostStartNewGame', {gameId: App.gameId});
             },
 
             /**
@@ -260,7 +426,7 @@ jQuery(function($){
                 App.roomName = data.roomName;
 
                 App.Host.displayNewGameScreen();
-                console.log("Game started with ID: " + App.gameId + ' by host: ' + App.mySocketId);
+                console.log("Game started with ID: " + App.gameId + ' by host: ' + App.mySocketId, data.roomName);
             },
 
             /**
@@ -277,6 +443,8 @@ jQuery(function($){
                 // Show the gameId / room id on screen
                 console.log(App.roomName);
                 $('#spanNewGameCode').text(App.gameId);
+
+                $("#btnStart").hide();
             },
 
             /**
@@ -288,10 +456,13 @@ jQuery(function($){
                 if ( App.Host.isNewGame ) {
                     App.Host.displayNewGameScreen();
                 }
+                // debugger;
                 // Update host screen
                 $('#playersWaiting')
                     .append('<p/>')
-                    .text('Player ' + data.playerName + ' joined the game.');
+                    .text(data.playerName + ' joined the game.');
+
+                $("#btnStart").show();
 
                 // Store the new player's data on the Host.
                 App.Host.players.push(data);
@@ -311,11 +482,13 @@ jQuery(function($){
             /**
              * Show the countdown screen
              */
-            gameCountdown : function() {
+            gameCountdown : function(data) {
 
                 // Prepare the game screen with new HTML
                 App.$gameArea.html(App.$hostGame);
                 App.doTextFit('#hostWord');
+
+                App.updateScoreBoard(data.scoreBoard);
 
                 // Begin the on-screen countdown timer
                 var $secondsLeft = $('#hostWord');
@@ -323,18 +496,19 @@ jQuery(function($){
                     IO.socket.emit('hostCountdownFinished', App.gameId);
                 });
 
-                // Display the players' names on screen
-                $('#player1Score')
-                    .find('.playerName')
-                    .html(App.Host.players[0].playerName);
+                // debugger
+                // // Display the players' names on screen
+                // $('#player1Score')
+                //     .find('.playerName')
+                //     .html(App.Host.players[0].playerName);
 
-                $('#player2Score')
-                    .find('.playerName')
-                    .html(App.Host.players[1].playerName);
+                // $('#player2Score')
+                //     .find('.playerName')
+                //     .html(App.Host.players[1].playerName);
 
                 // Set the Score section on screen to 0 for each player.
-                $('#player1Score').find('.score').attr('id',App.Host.players[0].mySocketId);
-                $('#player2Score').find('.score').attr('id',App.Host.players[1].mySocketId);
+                // $('#player1Score').find('.score').attr('id',App.Host.players[0].mySocketId);
+                // $('#player2Score').find('.score').attr('id',App.Host.players[1].mySocketId);
             },
 
             /**
@@ -343,8 +517,11 @@ jQuery(function($){
              */
             newWord : function(data) {
                 // Insert the new word into the DOM
-                $('#hostWord').text(data.word);
-                App.doTextFit('#hostWord');
+                // $('#hostWord').text(data.word);
+                // debugger;
+                $('#wordArea').html(App.$templateGameBoard);
+                App.generateBoard(data.word, data.allWordsLength);
+                // App.doTextFit('#hostWord');
 
                 // Update the data for the current round
                 App.Host.currentCorrectAnswer = data.answer;
@@ -482,6 +659,9 @@ jQuery(function($){
                     App.myRole = 'Player';
                     App.gameId = data.gameId;
 
+                    // debugger;
+                    App.Host.players.push(data);
+
                     $('#playerWaitingMessage')
                         .append('<p/>')
                         .text('Joined Game ' + data.gameId + '. Please wait for game to begin.');
@@ -502,6 +682,11 @@ jQuery(function($){
              * Show the list of words for the current round.
              * @param data{{round: *, word: *, answer: *, list: Array}}
              */
+            newWord : function(data) {
+                App.Host.newWord(data);
+            },
+
+            /*
             newWord : function(data) {
                 // // Create an unordered list element
                 // var $list = $('<ul/>').attr('id','ulAnswers');
@@ -524,7 +709,7 @@ jQuery(function($){
                 $('#gameArea').html(App.$hostGame);
                 $('#hostWord').text(data.word);
                 App.doTextFit('#hostWord');
-            },
+            }, */
 
             /**
              * Show the "Game Over" screen.
@@ -590,7 +775,6 @@ jQuery(function($){
          * @param el The parent element of some text
          */
         doTextFit : function(el) {
-            console.log(el)
             textFit(
                 $(el)[0],
                 {

@@ -127,6 +127,13 @@ html, body {
     margin-top: 1.5em;
 }
 
+.createGameWrapper #playersWaiting{
+    color: #ECFFE0;
+    font-weight: 400;
+    font-size: 1em;
+    margin-top: 1.5em;
+}
+
 .createGameWrapper{
     color: #AE37B2;
     font-weight: 300;
@@ -263,7 +270,7 @@ html, body {
 }
 
 .playerScore {
-    width: 50%;
+    width: 45%;
     padding: 0;
     margin: 0;
     font-family: 'Quicksand', sans-serif;
@@ -298,6 +305,13 @@ html, body {
     text-align: right;
 }
 
+#time {
+    width: 10%;
+    display: inline-block;
+    font-size: 50px;
+    text-align: center;
+    background: #ECFFE0;
+}
 
 /* ******************************
           TITLE SCREEN
@@ -325,4 +339,99 @@ html, body {
 
 #playerName {
     font-size: 1em;
+}
+
+
+/* ******************************
+          Game Board
+   ****************************** */
+
+/*button {
+    padding: 5px;
+    display: inline-block;
+}
+*/
+
+#buttonsDiv {
+    text-align: center;
+    margin: 10px;
+}
+
+#buttonsDiv .boardBtn {
+    display: inline-block;
+    height: 100%;
+    margin-bottom: 0;
+    color: #ECFFE0;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 2em;
+    line-height: 1.2;
+    text-align: center;
+    background-color: #8AD453;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+table,
+tr,
+td {
+    user-select: none;
+    border-spacing: 0px;
+    margin: 0px auto;
+    border: 2px solid blue;
+}
+
+.correctLetter {
+    background: #95f9e2;
+}
+
+#allWords {
+    text-align: center;
+    /*width: 50%;*/
+    margin: auto;
+}
+
+#allWords table {
+    display: inline-block;
+    margin: 3px;
+    border: 0px solid green;
+    border-collapse: collapse;
+}
+
+#allWords table tr {
+    border: 0px solid green;
+}
+
+#allWords table td {
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    font-weight: bold;
+        font-size: 20px;
+    border: 1px solid green;
+}
+
+td {
+    width: 70px;
+    height: 70px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 25px;
+}
+
+td:hover {
+    cursor: pointer;
+}
+
+.letter {
+    background: #29abe2 !important;
+    color: #ffffff;
+    font-size: 40px;
 }
