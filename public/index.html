@@ -25,7 +25,7 @@
         <div class="titleWrapper">
 
             <div class="title">
-                WORD GAME
+                TEXT TWIST
             </div>
 <!--
             <div class="details">
@@ -47,27 +47,39 @@
     <script id="create-game-template" type="text/template">
         <div class="createGameWrapper">
 
-            <div class="info">Wait for other players to join in your room.</div>
-            <div id="roomName" class="infoBig"></div>
+            <div class="createRoom">
+                <div class="info">
+                    <label for="inputPlayerName">Your Name:</label>
+                    <input id="inputPlayerName" type="text"/>
+                </div>
 
-            <div class="info">They can join by entering the following Game ID:</div>
-            <div id="spanNewGameCode" class="gameId">Error!</div>
+                <div class="info buttons">
+                    <button id="btnCreateRoom" class="btn">Create Room</button>
+                </div>
+            </div>
 
-            <div id="playersWaiting"></div>
+            <div class="wait">
+                <div class="info">Wait for the other player to join in your room.</div>
 
-            <div class="info buttons">
-                <button id="btnStart" class="btn">Start Game</button>
+                <div class="info">They can join by entering the following Game ID:</div>
+                <div id="spanNewGameCode" class="gameId">Error!</div>
+
+                <div id="playersWaiting"></div>
+
+                <div class="info buttons">
+                    <button id="btnStart" class="btn">Start Game</button>
+                </div>
             </div>
 
         </div>
     </script>
 
-    <!-- This scrreen appears when a player clicks "JOIN" on the Title Screen -->
+    <!-- This screen appears when a player clicks "JOIN" on the Title Screen -->
     <script id="join-game-template" type="text/template">
         <div class="joinGameWrapper">
             <div class="info">
                 <label for="inputPlayerName">Your Name:</label>
-                <input id="inputPlayerName" type="text" value="Xoc"/>
+                <input id="inputPlayerName" type="text"/>
             </div>
 
             <div class="info">
@@ -98,9 +110,9 @@
                 <span class="playerName">Player 2</span><span class="score">0</span>
             </div>
         </div>
-        <div id="answer">
-            <input type="text" id="answerText">
-            <button id="submitAnswer">Submit</button>
+        <div id="result">
+            <div class="info" id="message"></div>
+            <button id="playAgain">Play Again</button>
         </div>
     </script>
 
@@ -120,7 +132,7 @@
             <div id="buttonsDiv">
                 <button class="boardBtn" id="shuffle">Shuffle</button>
                 <button class="boardBtn" id="check">Check</button>
-                <button class="boardBtn" id="reset">Reset</button>
+                <button class="boardBtn" id="recall">Recall</button>
             </div>
         </div>
         <div id="allWords"></div>

@@ -73,18 +73,17 @@ function hostCreateNewGame(data) {
     var thisGameId = ( Math.random() * 100000 ) | 0;
 
     // Return the Room ID (gameId) and the socket ID (mySocketId) to the browser client
-    this.emit('newGameCreated', {gameId: thisGameId, mySocketId: this.id, roomName: data.name});
+    this.emit('newGameCreated', {gameId: thisGameId, mySocketId: this.id});
     // Join the Room and wait for the players
     this.join(thisGameId.toString());
-    // rooms = {}
-    // rooms[data.gameId] = {}
+
     this.manager.rooms[thisGameId] = {
         foundWords: {},
         gameStarted: false,
         scoreBoard: {
             [this.id]: {
                 name: data.name,
-                score: 0
+                score: 0,
             },
         }
     }
@@ -97,13 +96,12 @@ function hostCreateNewGame(data) {
  */
 function hostPrepareGame(data) {
     var sock = this;
+    var scoreBoard = this.manager.rooms[data.gameId].scoreBoard;
     var data = {
         mySocketId : sock.id,
         gameId : data.gameId,
-        scoreBoard: this.manager.rooms[data.gameId].scoreBoard
+        scoreBoard: scoreBoard
     };
-    console.log("All Players Ready. Preparing game...");
-    console.log(this.manager.rooms[data.gameId].scoreBoard)
     io.sockets.in(data.gameId).emit('beginNewGame', data);
 }
 
@@ -141,14 +139,15 @@ function endGame(gameId) {
     this.manager.rooms[gameId].gameStarted = false;
     let scoreBoard = this.manager.rooms[gameId].scoreBoard;
     let winner = findWinner(scoreBoard);
-    io.sockets.in(gameId).emit('endGame', { scoreBoard: scoreBoard, winner: winner });
+    io.sockets.in(gameId).emit('endGame', { scoreBoard: scoreBoard, winner: winner.name, winnerID: winner.id });
 }
 
 function findWinner(scoreBoard) {
     let players = Object.keys(scoreBoard);
-    if (scoreBoard[players[0]].score > scoreBoard[players[1]].score)
-        return scoreBoard[players[0]].name;
-    return scoreBoard[players[1]].name;
+    let player0 = scoreBoard[players[0]],
+        player1 = scoreBoard[players[1]];
+    let winner = player0.score > player1.score ? {name: player0.name, id: players[0]} : {name: player1.name, id: players[1]};
+    return player0.score == player1.score ? undefined : winner;
 }
 
 /**
@@ -177,7 +176,6 @@ function hostNextRound(data) {
  * @param data Contains data entered via player's input - playerName and gameId.
  */
 function playerJoinGame(data) {
-    console.log('Player ' + data.playerName + ' attempting to join game: ' + data.gameId );
 
     // A reference to the player's Socket.IO socket object
     var sock = this;
