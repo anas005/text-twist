@@ -12,11 +12,11 @@ var textTwist = require('./textTwist');
 
 // Create a simple Express application
 // app.configure(function() {
-    // Turn down the logging activity
-    // app.use(express.logger('dev'));
+// Turn down the logging activity
+// app.use(express.logger('dev'));
 
-    // Serve static html, js, css, and image files from the 'public' directory
-    app.use(express.static(path.join(__dirname,'public')));
+// Serve static html, js, css, and image files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 // });
 
 // Create a Node.js based http server on port 8080
@@ -27,10 +27,12 @@ var io = require('socket.io').listen(server);
 var rooms = {};
 
 // Reduce the logging output of Socket.IO
-io.set('log level',1);
+io.set('log level', 1);
+
+const db = {};
 
 // Listen for Socket.IO Connections. Once connected, start the game logic.
 io.sockets.on('connection', function (socket) {
     //console.log('client connected');
-    textTwist.initGame(io, socket, rooms);
+    textTwist.initGame(io, socket, db);
 });

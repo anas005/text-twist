@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8"/>
+    <meta charset="utf-8" />
 
     <!-- Ensure that everything scales appropriately on a mobile device -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
@@ -27,7 +28,7 @@
             <div class="title">
                 TEXT TWIST
             </div>
-<!--
+            <!--
             <div class="details">
                 Enter your name:
                 <input type="text" id="playerName" />
@@ -50,7 +51,7 @@
             <div class="createRoom">
                 <div class="info">
                     <label for="inputPlayerName">Your Name:</label>
-                    <input id="inputPlayerName" type="text"/>
+                    <input id="inputPlayerName" type="text" />
                 </div>
 
                 <div class="info buttons">
@@ -59,6 +60,8 @@
             </div>
 
             <div class="wait">
+                <div class="info" id="disconnectMsg">Opponent has left the game.</div>
+
                 <div class="info">Wait for the other player to join in your room.</div>
 
                 <div class="info">They can join by entering the following Game ID:</div>
@@ -79,12 +82,12 @@
         <div class="joinGameWrapper">
             <div class="info">
                 <label for="inputPlayerName">Your Name:</label>
-                <input id="inputPlayerName" type="text"/>
+                <input id="inputPlayerName" type="text" />
             </div>
 
             <div class="info">
                 <label for="inputGameId">Game ID:</label>
-                <input id="inputGameId" type="text"/>
+                <input id="inputGameId" type="text" />
             </div>
 
             <div class="info buttons">
@@ -112,7 +115,7 @@
         </div>
         <div id="result">
             <div class="info" id="message"></div>
-            <button id="playAgain">Play Again</button>
+            <button class="btn" id="playAgain">Play Again</button>
         </div>
     </script>
 
@@ -160,4 +163,5 @@
     <script src="app.js"></script>
 
 </body>
+
 </html>

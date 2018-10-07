@@ -13,6 +13,7 @@ html, body {
     width: 100%;
     margin: 0;
     padding: 0;
+    font-family: 'Quicksand', sans-serif;
 }
 
 
@@ -109,6 +110,15 @@ html, body {
     text-align: center;
 }
 
+input[type=text]:active,
+input[type=text]:hover {
+    border-color: #A22FB0;
+}
+
+input[type=text]:focus {
+    outline: none;
+}
+
 /* ******************************
           START SCREEN
      (create-game-template)
@@ -152,7 +162,7 @@ html, body {
     color: #A22FB0;
     font-weight: 300;
     font-size: 54px;
-    border: 1px dotted white;
+    border: 2px solid white;
     border-radius: 10px;
     background: transparent;
 }
@@ -308,7 +318,7 @@ html, body {
 #time {
     width: 10%;
     display: inline-block;
-    font-size: 50px;
+    font-size: 41px;
     text-align: center;
     background: #ECFFE0;
 }
@@ -379,6 +389,10 @@ html, body {
     user-select: none;
 }
 
+#buttonsDiv .boardBtn:hover {
+    color: #AE37B2;
+}
+
 table,
 tr,
 td {
@@ -414,7 +428,7 @@ td {
     height: 25px;
     text-align: center;
     font-weight: bold;
-        font-size: 20px;
+    font-size: 20px;
     border: 1px solid green;
 }
 
@@ -434,4 +448,22 @@ td:hover {
     background: #29abe2 !important;
     color: #ffffff;
     font-size: 40px;
+}
+
+#result {
+    position: absolute;
+    height: 50%;
+    width: 50%;
+    margin: auto;
+    bottom: 0;
+    left: 0;
+    top: 0;
+    right: 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+#result #playAgain {
+    height: 20%;
+    margin: 20px;
 }
