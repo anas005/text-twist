@@ -122,7 +122,7 @@ jQuery(function ($) {
             let wordIndex = data.index;
             if (wordIndex !== -1) {
                 $("#allWords table").eq(wordIndex).find("td").each(function (i) {
-                    $(this).text(data.word[i]).addClass("correctLetter");
+                    $(this).text(data.word[i]).addClass(data.scorer);
                 });
             }
             App.recallLetters();
@@ -281,18 +281,21 @@ jQuery(function ($) {
         },
 
         handleKeyPress: function (e) {
+            if (!$("#gameArea #wordArea").is(":visible")) {
+                return true;
+            }
+
             if (e.keyCode === 13) { // ENTER KEY
-                e.preventDefault();
                 $("#check").click();
                 return;
             }
-            if (e.keyCode === 8) { // BACKSPACE KEY
+            var $target = $(e.target || e.srcElement);
+            if (e.keyCode === 8 && !$target.is('input,[contenteditable="true"],textarea')) { // BACKSPACE KEY
                 e.preventDefault();
                 $("#mainTable .letter:last").click();
                 return;
             }
             if (e.keyCode === 32) { // SPACEBAR
-                e.preventDefault();
                 $("#shuffle").click();
             }
             let key = String.fromCharCode(e.keyCode);
@@ -504,9 +507,9 @@ jQuery(function ($) {
 
                 // Begin the on-screen countdown timer
                 var $secondsLeft = $('#hostWord');
-                // IO.timer({ countdown: 120 });
                 App.countDown($secondsLeft, 5, function () {
                     if (App.myRole === 'Host') {
+                        console.log('hostCountdownFinished')
                         IO.socket.emit('hostCountdownFinished', App.gameId);
                     }
                 });

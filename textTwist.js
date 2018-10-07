@@ -89,12 +89,15 @@ function checkWord(data) {
         thisRoom.foundWords[word] = true;
     }
 
+    const scorer = "player" + (Object.keys(scoreBoard).indexOf(this.id) + 1);
+
     console.log(scoreBoard)
 
     io.sockets.in(data.gameId).emit("wordChecked", {
         scoreBoard: scoreBoard,
         index: wordIndex,
-        word: word
+        word: word,
+        scorer: scorer
     })
 }
 
@@ -142,6 +145,7 @@ function hostPrepareGame(data) {
         scoreBoard: scoreBoard,
         timeLimit: TIME_LIMIT
     };
+    console.log("gonna begin new game")
     io.sockets.in(data.gameId).emit('beginNewGame', data);
 }
 
@@ -292,7 +296,7 @@ function playerRestart(data) {
  */
 function sendWord(wordPoolIndex, gameId) {
     var data = getWordData.call(this, gameId);
-    io.sockets.in(data.gameId).emit('newWordData', data);
+    io.sockets.in(gameId).emit('newWordData', data);
 }
 
 /**

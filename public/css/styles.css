@@ -111,7 +111,7 @@ html, body {
 }
 
 input[type=text]:active,
-input[type=text]:hover {
+input[type=text]:focus {
     border-color: #A22FB0;
 }
 
@@ -171,6 +171,13 @@ input[type=text]:focus {
     width: 90%;
 }
 
+.player1 {
+    background: darkviolet !important;
+}
+
+.player2 {
+    background: darkorange !important;
+}
 
 /* ******************************
            JOIN SCREEN
@@ -402,10 +409,6 @@ td {
     border: 2px solid blue;
 }
 
-.correctLetter {
-    background: #95f9e2;
-}
-
 #allWords {
     text-align: center;
     /*width: 50%;*/
@@ -466,4 +469,9 @@ td:hover {
 #result #playAgain {
     height: 20%;
     margin: 20px;
+}
+
+#disconnectMsg {
+    color: firebrick;
+    font-weight: bold;
 }
