@@ -1,6 +1,8 @@
 var io;
 var gameSocket;
 const words = require("./lib/words.js")
+const shuffle = require("./lib/shuffle.js")
+const WORD_LENGTH = 7;
 const TIME_LIMIT = 120;
 
 /**
@@ -128,6 +130,10 @@ function hostCreateNewGame(data) {
                 score: 0,
             },
         },
+        config: {
+            wordLength: data.wordLength || WORD_LENGTH,
+            timeLimit: data.timeLimit || TIME_LIMIT
+        }
     }
     console.log(io.db);
 };
@@ -143,7 +149,7 @@ function hostPrepareGame(data) {
         mySocketId: sock.id,
         gameId: data.gameId,
         scoreBoard: scoreBoard,
-        timeLimit: TIME_LIMIT
+        timeLimit: io.db[data.gameId].config.timeLimit
     };
     console.log("gonna begin new game")
     io.sockets.in(data.gameId).emit('beginNewGame', data);
@@ -167,7 +173,7 @@ function hostStartGame(gameId) {
 function startTimer(gameId) {
     console.log('inside startTimer');
     let socket = this;
-    var countdown = TIME_LIMIT;
+    var countdown = io.db[gameId].config.timeLimit;
     const timer = setInterval(function () {
         countdown--;
         io.sockets.in(gameId).emit('timer', { countdown: countdown });
@@ -307,7 +313,7 @@ function sendWord(wordPoolIndex, gameId) {
  * @returns {{round: *, word: *, answer: *, list: Array}}
  */
 function getWordData(gameId) {
-    let randomWord = words.randomWord(7);
+    let randomWord = words.randomWord(io.db[gameId].config.wordLength);
     let allWords = words.allWords(randomWord);
 
     var wordData = {
@@ -318,29 +324,4 @@ function getWordData(gameId) {
     };
     io.db[gameId].wordData = wordData;
     return wordData;
-}
-
-/*
- * Javascript implementation of Fisher-Yates shuffle algorithm
- * http://stackoverflow.com/questions/2450954/how-to-randomize-a-javascript-array
- */
-function shuffle(array) {
-    var currentIndex = array.length;
-    var temporaryValue;
-    var randomIndex;
-
-    // While there remain elements to shuffle...
-    while (0 !== currentIndex) {
-
-        // Pick a remaining element...
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex -= 1;
-
-        // And swap it with the current element.
-        temporaryValue = array[currentIndex];
-        array[currentIndex] = array[randomIndex];
-        array[randomIndex] = temporaryValue;
-    }
-
-    return array;
 }

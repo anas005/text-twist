@@ -7,13 +7,8 @@ var path = require('path');
 // Create a new instance of Express
 var app = express();
 
-// Import the Anagrammatix game file.
+// Import the Text Twist game file.
 var textTwist = require('./textTwist');
-
-// Create a simple Express application
-// app.configure(function() {
-// Turn down the logging activity
-// app.use(express.logger('dev'));
 
 // Serve static html, js, css, and image files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -24,15 +19,12 @@ var server = require('http').createServer(app).listen(process.env.PORT || 8080);
 
 // Create a Socket.IO server and attach it to the http server
 var io = require('socket.io').listen(server);
-var rooms = {};
 
-// Reduce the logging output of Socket.IO
-io.set('log level', 1);
-
+// Create an in-memory db
 const db = {};
 
 // Listen for Socket.IO Connections. Once connected, start the game logic.
 io.sockets.on('connection', function (socket) {
-    //console.log('client connected');
+    console.log('client connected');
     textTwist.initGame(io, socket, db);
 });
