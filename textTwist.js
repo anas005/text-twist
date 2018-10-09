@@ -1,9 +1,9 @@
-var io;
-var gameSocket;
-const words = require("./lib/words.js")
-const shuffle = require("./lib/shuffle.js")
-const WORD_LENGTH = 7;
-const TIME_LIMIT = 120;
+const { words, shuffle } = require("./lib")
+let io;
+let gameSocket;
+let db = {};
+const WORD_LENGTH = 5;
+const TIME_LIMIT = 20;
 
 /**
  * This function is called by index.js to initialize a new game instance.
@@ -11,13 +11,14 @@ const TIME_LIMIT = 120;
  * @param sio The Socket.IO library
  * @param socket The socket object for the connected client.
  */
-exports.initGame = function (sio, socket, db) {
+function initGame(sio, socket) {
     io = sio;
     gameSocket = socket;
-    io.db = db;
 
     // On new connection
     gameSocket.emit('connected', { message: "You are connected!" });
+
+    gameSocket.on('test', test);
 
     // Host Events
     gameSocket.on('hostCreateNewGame', hostCreateNewGame);
@@ -34,14 +35,24 @@ exports.initGame = function (sio, socket, db) {
 
     gameSocket.on('restartGame', restartGame);
 
+    gameSocket.on('disconnecting', whileDisconnecting);
+
     gameSocket.on('disconnect', resetGame);
 
+}
+
+function whileDisconnecting(...args) {
+    debugger;
+}
+
+function test(message) {
+    console.log(message);
 }
 
 function findRoomByClientId(rooms, id) {
     let room;
     Object.keys(rooms).filter(roomId => roomId !== '').forEach((roomId) => {
-        if (rooms[roomId].indexOf(id) !== -1) {
+        if (rooms[roomId] && rooms[roomId].indexOf(id) !== -1) {
             room = roomId;
         }
     });
@@ -49,21 +60,25 @@ function findRoomByClientId(rooms, id) {
 }
 
 function resetGame() {
-    const room = findRoomByClientId(this.manager.rooms, this.id);
+    debugger
+    console.log('inside resetGame');
+    // const room = findRoomByClientId(this.adapter.rooms, this.id);
+    const room = this.adapter.rooms[this.id];
+    console.log('room is ', room);
     if (room === undefined) return;
-    room.gameStarted = false;
+    // db[room].gameStarted = false;
     console.log(this.id, 'disconnected from', room);
-    console.log('Gonna clear scoreBoard', io.db[room].scoreBoard[this.id]);
-    delete io.db[room].scoreBoard[this.id];
-    Object.keys(io.db[room].scoreBoard).forEach(id => {
-        io.db[room].scoreBoard[id].score = 0;
+    console.log('Gonna clear scoreBoard', db[room].scoreBoard[this.id]);
+    delete db[room].scoreBoard[this.id];
+    Object.keys(db[room].scoreBoard).forEach(id => {
+        db[room].scoreBoard[id].score = 0;
     });
-    clearInterval(io.db[room].timer);
+    clearInterval(db[room].timer);
     io.sockets.in(room).emit('resetGame', { gameId: room, mySocketId: this.id });
 }
 
 function restartGame(data) {
-    const room = io.db[data.gameId];
+    const room = db[data.gameId];
     room.foundWords = {};
     room.gameStarted = true;
     room.wordData = {};
@@ -76,8 +91,8 @@ function restartGame(data) {
 function checkWord(data) {
     console.log("*** checkWord ***");
     let word = data.word.toLowerCase();
-
-    let thisRoom = io.db[data.gameId];
+    // debugger;
+    let thisRoom = db[data.gameId];
 
     if (!thisRoom.gameStarted) return;
 
@@ -121,7 +136,7 @@ function hostCreateNewGame(data) {
     // Join the Room and wait for the players
     this.join(thisGameId.toString());
 
-    io.db[thisGameId] = {
+    db[thisGameId] = {
         foundWords: {},
         gameStarted: false,
         scoreBoard: {
@@ -135,7 +150,7 @@ function hostCreateNewGame(data) {
             timeLimit: data.timeLimit || TIME_LIMIT
         }
     }
-    console.log(io.db);
+    console.log(db);
 };
 
 /*
@@ -144,12 +159,12 @@ function hostCreateNewGame(data) {
  */
 function hostPrepareGame(data) {
     var sock = this;
-    var scoreBoard = io.db[data.gameId].scoreBoard;
+    var scoreBoard = db[data.gameId].scoreBoard;
     data = {
         mySocketId: sock.id,
         gameId: data.gameId,
         scoreBoard: scoreBoard,
-        timeLimit: io.db[data.gameId].config.timeLimit
+        timeLimit: db[data.gameId].config.timeLimit
     };
     console.log("gonna begin new game")
     io.sockets.in(data.gameId).emit('beginNewGame', data);
@@ -161,7 +176,7 @@ function hostPrepareGame(data) {
  */
 function hostStartGame(gameId) {
     console.log('Game Started.');
-    io.db[gameId].gameStarted = true;
+    db[gameId].gameStarted = true;
     sendWord.call(this, 0, gameId);
     startTimer.call(this, gameId);
 };
@@ -173,7 +188,7 @@ function hostStartGame(gameId) {
 function startTimer(gameId) {
     console.log('inside startTimer');
     let socket = this;
-    var countdown = io.db[gameId].config.timeLimit;
+    var countdown = db[gameId].config.timeLimit;
     const timer = setInterval(function () {
         countdown--;
         io.sockets.in(gameId).emit('timer', { countdown: countdown });
@@ -182,13 +197,13 @@ function startTimer(gameId) {
             clearInterval(this);
         }
     }, 1000);
-    io.db[gameId].timer = timer;
+    db[gameId].timer = timer;
 };
 
 function endGame(gameId) {
     console.log('inside endGame');
-    io.db[gameId].gameStarted = false;
-    let scoreBoard = io.db[gameId].scoreBoard;
+    db[gameId].gameStarted = false;
+    let scoreBoard = db[gameId].scoreBoard;
     let winner = findWinner(scoreBoard);
     console.log("scoreBoard", scoreBoard);
     console.log("winner", winner);
@@ -234,7 +249,7 @@ function playerJoinGame(data) {
     var sock = this;
 
     // Look up the room ID in the Socket.IO manager object.
-    var room = gameSocket.manager.rooms["/" + data.gameId];
+    var room = gameSocket.adapter.rooms[data.gameId];
 
     // If the room exists...
     if (room != undefined) {
@@ -249,14 +264,14 @@ function playerJoinGame(data) {
         // Emit an event notifying the clients that the player has joined the room.
         io.sockets.in(data.gameId).emit('playerJoinedRoom', data);
 
-        // console.log(io.db[data.gameId]);
+        // console.log(db[data.gameId]);
 
-        io.db[data.gameId].scoreBoard[this.id] = {
+        db[data.gameId].scoreBoard[this.id] = {
             name: data.playerName,
             score: 0
         };
 
-        console.log(io.db[data.gameId].scoreBoard);
+        console.log(db[data.gameId].scoreBoard);
 
     } else {
         // Otherwise, send an error message back to the player.
@@ -313,15 +328,19 @@ function sendWord(wordPoolIndex, gameId) {
  * @returns {{round: *, word: *, answer: *, list: Array}}
  */
 function getWordData(gameId) {
-    let randomWord = words.randomWord(io.db[gameId].config.wordLength);
+    let randomWord = words.randomWord(db[gameId].config.wordLength);
     let allWords = words.allWords(randomWord);
-
+    // debugger;
     var wordData = {
         // round: i,
         word: shuffle(randomWord.split("")).join("").toUpperCase(),   // Displayed Word
         answers: allWords, // Correct Answers
         allWordsLength: allWords.map(word => word.length), // Correct Answers
     };
-    io.db[gameId].wordData = wordData;
+    db[gameId].wordData = wordData;
     return wordData;
 }
+
+module.exports = {
+    initGame
+};

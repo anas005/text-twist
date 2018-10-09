@@ -49,8 +49,9 @@ jQuery(function ($) {
          * The client is successfully connected!
          */
         onConnected: function (data) {
-            // Cache a copy of the client's socket.IO session ID on the App
-            App.mySocketId = IO.socket.socket.sessionid;
+            // Cache a copy of the client's session ID on the App
+            App.mySocketId = IO.socket.id;
+            IO.socket.emit('test', { hello: 'world' })
             // console.log(data.message);
             // $(".textFitted").text(data.word);
         },
@@ -164,7 +165,7 @@ jQuery(function ($) {
             console.log('end game. data received:', JSON.stringify(data));
             if (data.winner === undefined) {
                 $("#result #message").text("It's a tie!");
-            } else if (IO.socket.socket.sessionid === data.winnerID) {
+            } else if (IO.socket.id === data.winnerID) {
                 $("#result #message").text("Congrats! You won the game!");
             } else {
                 $("#result #message").text(data.winner + " won the game!");
@@ -675,7 +676,7 @@ jQuery(function ($) {
              * @param data
              */
             updateWaitingScreen: function (data) {
-                if (IO.socket.socket.sessionid === data.mySocketId) {
+                if (IO.socket.id === data.mySocketId) {
                     App.myRole = 'Player';
                     App.gameId = data.gameId;
 
