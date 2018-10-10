@@ -51,9 +51,6 @@ jQuery(function ($) {
         onConnected: function (data) {
             // Cache a copy of the client's session ID on the App
             App.mySocketId = IO.socket.id;
-            IO.socket.emit('test', { hello: 'world' })
-            // console.log(data.message);
-            // $(".textFitted").text(data.word);
         },
 
         /**
@@ -118,13 +115,19 @@ jQuery(function ($) {
         },
 
         wordChecked: function (data) {
-            data.word = data.word.toUpperCase();
-            App.updateScoreBoard(data.scoreBoard);
-            let wordIndex = data.index;
-            if (wordIndex !== -1) {
-                $("#allWords table").eq(wordIndex).find("td").each(function (i) {
-                    $(this).text(data.word[i]).addClass(data.scorer);
-                });
+            if (data.incorrectWord === true) {
+                // TODO: handle incorrect word
+            } else if (data.alreadyTaken === true) {
+                // TODO: handle already taken word
+            } else {
+                data.word = data.word.toUpperCase();
+                App.updateScoreBoard(data.scoreBoard);
+                let wordIndex = data.index;
+                if (wordIndex !== -1) {
+                    $("#allWords table").eq(wordIndex).find("td").each(function (i) {
+                        $(this).text(data.word[i]).addClass(data.scorer);
+                    });
+                }
             }
             App.recallLetters();
         },

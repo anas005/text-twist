@@ -18,8 +18,6 @@ function initGame(sio, socket) {
     // On new connection
     gameSocket.emit('connected', { message: "You are connected!" });
 
-    gameSocket.on('test', test);
-
     // Host Events
     gameSocket.on('hostCreateNewGame', hostCreateNewGame);
     gameSocket.on('hostStartNewGame', hostPrepareGame);
@@ -37,16 +35,19 @@ function initGame(sio, socket) {
 
     gameSocket.on('disconnecting', whileDisconnecting);
 
-    gameSocket.on('disconnect', resetGame);
+    // gameSocket.on('disconnect', resetGame);
 
 }
 
 function whileDisconnecting(...args) {
-    debugger;
-}
+    if (db.clientRoom === undefined) return;
+    const roomId = db.clientRoom[this.id];
+    if (roomId === undefined) return;
 
-function test(message) {
-    console.log(message);
+    console.log(this.id, 'disconnected from', roomId);
+    delete db.clientRoom[this.id];
+
+    resetGame.call(this, roomId);
 }
 
 function findRoomByClientId(rooms, id) {
@@ -59,22 +60,17 @@ function findRoomByClientId(rooms, id) {
     return room && room.replace(/^\//, '');
 }
 
-function resetGame() {
-    debugger
+function resetGame(roomId) {
+    debugger;
     console.log('inside resetGame');
-    // const room = findRoomByClientId(this.adapter.rooms, this.id);
-    const room = this.adapter.rooms[this.id];
-    console.log('room is ', room);
-    if (room === undefined) return;
-    // db[room].gameStarted = false;
-    console.log(this.id, 'disconnected from', room);
-    console.log('Gonna clear scoreBoard', db[room].scoreBoard[this.id]);
-    delete db[room].scoreBoard[this.id];
-    Object.keys(db[room].scoreBoard).forEach(id => {
-        db[room].scoreBoard[id].score = 0;
+    db[roomId].gameStarted = false;
+    console.log('Gonna clear scoreBoard', db[roomId].scoreBoard[this.id]);
+    delete db[roomId].scoreBoard[this.id];
+    Object.keys(db[roomId].scoreBoard).forEach(id => {
+        db[roomId].scoreBoard[id].score = 0;
     });
-    clearInterval(db[room].timer);
-    io.sockets.in(room).emit('resetGame', { gameId: room, mySocketId: this.id });
+    clearInterval(db[roomId].timer);
+    io.sockets.in(roomId).emit('resetGame', { gameId: roomId, mySocketId: this.id });
 }
 
 function restartGame(data) {
@@ -96,26 +92,29 @@ function checkWord(data) {
 
     if (!thisRoom.gameStarted) return;
 
-    let scoreBoard = thisRoom.scoreBoard;
     let wordData = thisRoom.wordData;
 
     let wordIndex = wordData.answers.indexOf(word);
 
-    if (wordIndex !== -1 && !thisRoom.foundWords[word]) {
+    const emitPaylad = { word, index: wordIndex };
+
+    if (wordIndex === -1) {
+        emitPaylad.incorrectWord = true;
+    } else if (thisRoom.foundWords[word] === true) {
+        emitPaylad.alreadyTaken = true;
+    } else {
+        let scoreBoard = thisRoom.scoreBoard;
         scoreBoard[this.id].score += word.length;
+
+        console.log(scoreBoard);
+
         thisRoom.foundWords[word] = true;
+        const scorer = "player" + (Object.keys(scoreBoard).indexOf(this.id) + 1);
+        emitPaylad.scoreBoard = scoreBoard;
+        emitPaylad.scorer = scorer;
     }
 
-    const scorer = "player" + (Object.keys(scoreBoard).indexOf(this.id) + 1);
-
-    console.log(scoreBoard)
-
-    io.sockets.in(data.gameId).emit("wordChecked", {
-        scoreBoard: scoreBoard,
-        index: wordIndex,
-        word: word,
-        scorer: scorer
-    })
+    io.sockets.in(data.gameId).emit("wordChecked", emitPaylad);
 }
 
 /* *******************************
@@ -131,10 +130,16 @@ function hostCreateNewGame(data) {
     // Create a unique Socket.IO Room
     var thisGameId = (Math.random() * 100000) | 0;
 
+    // create a client room map
+    db.clientRoom = db.clientRoom || {};
+    db.clientRoom[this.id] = thisGameId;
+
     // Return the Room ID (gameId) and the socket ID (mySocketId) to the browser client
     this.emit('newGameCreated', { gameId: thisGameId, mySocketId: this.id });
     // Join the Room and wait for the players
     this.join(thisGameId.toString());
+
+
 
     db[thisGameId] = {
         foundWords: {},
@@ -255,6 +260,8 @@ function playerJoinGame(data) {
     if (room != undefined) {
         // attach the socket id to the data object.
         data.mySocketId = sock.id;
+
+        db.clientRoom[sock.id] = data.gameId;
 
         // Join the room
         sock.join(data.gameId);
