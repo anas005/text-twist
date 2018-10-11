@@ -438,6 +438,8 @@ jQuery(function ($) {
             onCreateRoomClick: function () {
                 var data = {
                     name: $("#inputPlayerName").val(),
+                    wordLength: $("#wordLength").val(),
+                    timeLimit: $("#timeLimit").val()
                 };
                 if (!data.name) {
                     alert("Enter your name to proceed!")
