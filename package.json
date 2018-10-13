@@ -4,8 +4,9 @@
   "description": "A word game",
   "main": "start.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "test": "echo 'There is no test! ¯\\_(ツ)_/¯' && exit 0",
+    "start": "node index.js",
+    "debug": "node --inspect index.js"
   },
   "repository": {
     "type": "git",
@@ -13,7 +14,9 @@
   },
   "keywords": [
     "word",
-    "game"
+    "game",
+    "anagram",
+    "text-twist"
   ],
   "author": "Anas",
   "license": "MIT",

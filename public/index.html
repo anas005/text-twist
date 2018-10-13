@@ -94,7 +94,9 @@
 
             <div class="info buttons">
                 <button id="btnReady" class="btn">Ready</button>
-                <div id="playerWaitingMessage"></div>
+                <div id="guestWaitingMessage">
+                    <p>Joined Game <span id="gameId"></span>. Please wait for game to begin.</p>
+                </div>
             </div>
         </div>
     </script>
@@ -161,7 +163,7 @@
         serve the proper Socket.IO javascript files used by the browser -->
     <script src="/socket.io/socket.io.js"></script>
 
-    <!-- app.js is where all the client-side Anagrammatix game logic -->
+    <!-- app.js is where all the client-side TextTwist game logic -->
     <script src="app.js"></script>
 
 </body>

@@ -203,8 +203,9 @@ input[type=text]:focus {
     height: 50%;
 }
 
-#playerWaitingMessage {
+#guestWaitingMessage {
     font-size: .8em;
+    display: none;
 }
 
 .createGameWrapper #gameURL {
