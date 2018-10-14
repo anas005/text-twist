@@ -29,16 +29,21 @@ const TIME_LIMIT = 120;
 function resetGame(roomId) {
   console.log('inside resetGame');
   db[roomId].gameStarted = false;
-  console.log('Gonna clear scoreBoard', db[roomId].scoreBoard[this.id]);
   delete db[roomId].scoreBoard[this.id];
-  Object.keys(db[roomId].scoreBoard).forEach((id) => {
-    db[roomId].scoreBoard[id].score = 0;
-  });
   clearInterval(db[roomId].timer);
-  io.sockets.in(roomId).emit('resetGame', {
-    gameId: roomId,
-    mySocketId: this.id,
-  });
+
+  // If both the players have left the room, destory the room!
+  if (Object.keys(db[roomId].scoreBoard).length === 0) {
+    delete db[roomId];
+  } else {
+    Object.keys(db[roomId].scoreBoard).forEach((id) => {
+      db[roomId].scoreBoard[id].score = 0;
+    });
+    io.sockets.in(roomId).emit('resetGame', {
+      gameId: roomId,
+      mySocketId: this.id,
+    });
+  }
   console.log(db);
 }
 
@@ -96,40 +101,8 @@ function restartGame(data) {
   prepareGame.call(this, data);
 }
 
-/**
- * Check the word sent by client
- * @param data {{ word: string, gameId: int }}
- */
-function checkWord(data) {
-  console.log('*** checkWord ***');
-  const word = data.word.toLowerCase();
-  const thisRoom = db[data.gameId];
-
-  if (!thisRoom || !thisRoom.gameStarted) return;
-
-  const { wordData } = thisRoom;
-
-  const wordIndex = wordData.answers.indexOf(word);
-
-  const emitPaylad = { word, index: wordIndex };
-
-  if (wordIndex === -1) {
-    emitPaylad.incorrectWord = true;
-  } else if (thisRoom.foundWords[word] === true) {
-    emitPaylad.alreadyTaken = true;
-  } else {
-    const { scoreBoard } = thisRoom;
-    scoreBoard[this.id].score += word.length;
-
-    console.log(scoreBoard);
-
-    thisRoom.foundWords[word] = true;
-    const scorer = `player${Object.keys(scoreBoard).indexOf(this.id) + 1}`;
-    emitPaylad.scoreBoard = scoreBoard;
-    emitPaylad.scorer = scorer;
-  }
-
-  io.sockets.in(data.gameId).emit('wordChecked', emitPaylad);
+function sendDefaultConfig() {
+  this.emit('defaultConfig', { wordLength: WORD_LENGTH, timeLimit: TIME_LIMIT });
 }
 
 /**
@@ -163,7 +136,6 @@ function createNewGame(data) {
       timeLimit: data.timeLimit || TIME_LIMIT,
     },
   };
-  console.log(db);
 }
 
 /**
@@ -219,8 +191,9 @@ function findWinner(scoreBoard) {
  */
 function endGame(gameId) {
   console.log('inside endGame');
+  const { scoreBoard, timer } = db[gameId];
+  clearInterval(timer);
   db[gameId].gameStarted = false;
-  const { scoreBoard } = db[gameId];
   const winner = findWinner(scoreBoard);
   console.log('scoreBoard', scoreBoard);
   console.log('winner', winner);
@@ -232,6 +205,41 @@ function endGame(gameId) {
 }
 
 /**
+ * Check the word sent by client
+ * @param data {{ word: string, gameId: int }}
+ */
+function checkWord(data) {
+  console.log('*** checkWord ***');
+  const word = data.word.toLowerCase();
+  const thisRoom = db[data.gameId];
+  const { wordData, gameStarted, foundWords } = thisRoom;
+
+  if (!thisRoom || !gameStarted) return;
+
+  const wordIndex = wordData.answers.indexOf(word);
+  const emitPayload = { word, index: wordIndex };
+
+  emitPayload.socketId = this.id;
+  if (wordIndex === -1) {
+    emitPayload.incorrectWord = true;
+  } else if (foundWords[word] === true) {
+    emitPayload.alreadyTaken = true;
+  } else {
+    const { scoreBoard } = thisRoom;
+    scoreBoard[this.id].score += word.length;
+    console.log(scoreBoard);
+    foundWords[word] = true;
+    emitPayload.scoreBoard = scoreBoard;
+  }
+
+  io.sockets.in(data.gameId).emit('wordChecked', emitPayload);
+
+  if (Object.keys(foundWords).length === wordData.answers.length) {
+    endGame.call(this, data.gameId);
+  }
+}
+
+/**
  * Start the countdown timer
  * @param gameId The Game ID
  */
@@ -239,12 +247,11 @@ function startTimer(gameId) {
   console.log('inside startTimer');
   const socket = this;
   let countdown = db[gameId].config.timeLimit;
-  const timer = setInterval(function timer() {
+  const timer = setInterval(() => {
     countdown -= 1;
     io.sockets.in(gameId).emit('timer', { countdown });
     if (countdown <= 0) {
       endGame.call(socket, gameId);
-      clearInterval(this);
     }
   }, 1000);
   db[gameId].timer = timer;
@@ -327,6 +334,7 @@ function initGame(sio, socket) {
   gameSocket.emit('connected', { message: 'You are connected!' });
 
   // Game events
+  gameSocket.on('getDefaultConfig', sendDefaultConfig);
   gameSocket.on('createNewGame', createNewGame);
   gameSocket.on('startNewGame', prepareGame);
   gameSocket.on('countdownFinished', hostStartGame);

@@ -18,8 +18,10 @@ const io = require('socket.io')(server);
 // Import the Text Twist game file.
 const textTwist = require('./textTwist');
 
-// Start listening on default port 8080
-server.listen(process.env.PORT || 8080);
+// Start listening on $PORT or default port 8080
+const port = process.env.PORT || 8080;
+server.listen(port);
+console.log(`server started listening on ${port}`);
 
 // Serve static html, js, css, and image files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));

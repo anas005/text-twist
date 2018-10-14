@@ -77,6 +77,7 @@ jQuery(function fn($) {
       App.$doc.on('click', '#btnReady', App.Guest.onGuestReadyClick);
 
       // Common
+      App.$doc.on('input', 'input[type=range]', App.updateRangeText);
       App.$doc.on('click', '#shuffle', App.shuffleLetters);
       App.$doc.on('click', '#check', App.checkWord);
       App.$doc.on('click', '#recall', App.recallLetters);
@@ -190,6 +191,11 @@ jQuery(function fn($) {
       return array;
     },
 
+    updateRangeText() {
+      const slider = $(this);
+      $(`#${slider.data('for')}`).text(slider.val());
+    },
+
     /**
      * Shuffle letters present in hot board
      */
@@ -254,7 +260,19 @@ jQuery(function fn($) {
        * Handler for the "Start" button on the Title Screen.
        */
       onCreateClick() {
+        IO.socket.emit('getDefaultConfig');
+      },
+
+      /**
+       * Show create game screen
+       * @param config {{ wordLength: number, timeLimit: number }}
+       */
+      showCreateGameScreen(config) {
         App.Host.displayNewGameScreen();
+        $('#wordLength').val(config.wordLength);
+        $('#wordLengthValue').text(config.wordLength);
+        $('#timeLimit').val(config.timeLimit);
+        $('#timeLimitValue').text(config.timeLimit);
       },
 
       /**
@@ -478,6 +496,7 @@ jQuery(function fn($) {
      */
     bindEvents() {
       IO.socket.on('connected', IO.onConnected);
+      IO.socket.on('defaultConfig', App.Host.showCreateGameScreen);
       IO.socket.on('newGameCreated', IO.onNewGameCreated);
       IO.socket.on('startNewGame', IO.startNewGame);
       IO.socket.on('guestJoinedRoom', IO.guestJoinedRoom);
@@ -547,7 +566,7 @@ jQuery(function fn($) {
     },
 
     /**
-     * A new set of words for the round is returned from the server.
+     * A new word for the round is returned from the server.
      * @param data {{ word: string, allWordsLength: array }}
      */
     onNewWordData(data) {
@@ -555,7 +574,11 @@ jQuery(function fn($) {
       App.newWord(data);
     },
 
-
+    /**
+     * Server returns the result of entered word
+     * @param data {{ socketId: string, incorrectWord: boolean,
+     *    alreadyTaken: boolean, word: string, index: number }}
+     */
     wordChecked(data) {
       if (data.incorrectWord === true) {
         // TODO: handle incorrect word (show red border/animation etc.)
@@ -564,14 +587,22 @@ jQuery(function fn($) {
       } else {
         data.word = data.word.toUpperCase();
         App.updateScoreBoard(data.scoreBoard);
+
+        let scorer = App.myRole;
+        if (data.socketId !== App.mySocketId) {
+          scorer = App.myRole === 'Guest' ? 'Host' : 'Guest';
+        }
+
         const wordIndex = data.index;
         if (wordIndex !== -1) {
           $('#allWords table').eq(wordIndex).find('td').each(function iterator(i) {
-            $(this).text(data.word[i]).addClass(data.scorer);
+            $(this).text(data.word[i]).addClass(scorer);
           });
         }
       }
-      App.recallLetters();
+      if (data.socketId === App.mySocketId) {
+        App.recallLetters();
+      }
     },
 
     /**

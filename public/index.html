@@ -50,10 +50,20 @@
                 </div>
 
                 <div class="info config">
-                    <label for="wordLength">Word Length:</label>
-                    <input type="range" min="5" max="8" step="1" value="6" id="wordLength">
-                    <label for="timeLimit">Time Limit:</label>
-                    <input type="range" min="30" max="300" step="30" value="120" id="timeLimit">
+                    <div id="wordLengthLabelContainer">
+                        <label for="wordLength">Word Length:</label>
+                        <span class="range-slider__value" id="wordLengthValue">8</span> <span>Letters</span>
+                    </div>
+                    <div id="wordLengthSliderContainer">
+                        <input type="range" min="5" max="8" step="1" id="wordLength" data-for="wordLengthValue">
+                    </div>
+                    <div id="timeLimitLabelContainer">
+                        <label for="timeLimit">Time Limit:</label>
+                        <span class="range-slider__value" id="timeLimitValue">300</span> <span>Seconds</span>
+                    </div>
+                    <div id="timeLimitTextContainer">
+                        <input type="range" min="30" max="300" step="30" id="timeLimit" data-for="timeLimitValue">
+                    </div>
                 </div>
 
                 <div class="info buttons">
@@ -108,13 +118,13 @@
         </div>
         <div id="playerScores">
             <div id="player1Score" class="playerScore">
-                <span class="score">0</span><span class="playerName player1">Player 1</span>
+                <span class="score">0</span><span class="playerName Host">Player 1</span>
             </div>
             <div id="time">
                 <span></span>
             </div>
             <div id="player2Score" class="playerScore">
-                <span class="playerName player2">Player 2</span><span class="score">0</span>
+                <span class="playerName Guest">Player 2</span><span class="score">0</span>
             </div>
         </div>
         <div id="result">
