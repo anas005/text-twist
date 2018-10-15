@@ -1,7 +1,7 @@
 {
-  "name": "word-game",
+  "name": "Text-Twist",
   "version": "0.0.0",
-  "description": "A word game",
+  "description": "Multiplayer Text-Twist Game",
   "main": "start.js",
   "scripts": {
     "test": "echo 'There is no test! ¯\\_(ツ)_/¯' && exit 0",
@@ -10,18 +10,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/anas005/word-game.git"
+    "url": "git://github.com/anas005/text-twist.git"
   },
   "keywords": [
     "word",
     "game",
     "anagram",
-    "text-twist"
+    "text-twist",
+    "multiplayer-game"
   ],
   "author": "Anas",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/anas005/word-game/issues"
+    "url": "https://github.com/anas005/text-twist/issues"
   },
   "dependencies": {
     "express": "^4.16.3",
