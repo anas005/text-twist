@@ -3,7 +3,7 @@ Text-Twist
 A Real Time Multiplayer implementation of classical word game - Text Twist!
 
 Twist and turn jumbled letters to make words. Look for patterns and put your vocabulary to the test in the fun.
-Race againt the time and beat your opponent in the awesome multiplayer game.
+Race against the time and beat your opponent in the awesome multiplayer game.
 
 ### Installation
 ```
