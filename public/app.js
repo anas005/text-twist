@@ -21,6 +21,153 @@ jQuery(function fn($) {
     });
   };
 
+  /**
+   * Synthesized sound effects via Web Audio API (no audio files needed).
+   */
+  const SoundFX = {
+    ctx: null,
+    muted: window.localStorage.getItem('tt-muted') === 'true',
+
+    ensure() {
+      if (!this.ctx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        this.ctx = new Ctx();
+      }
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      return this.ctx;
+    },
+
+    tone(freq, duration, type, volume, delay) {
+      if (this.muted) return;
+      const ctx = this.ensure();
+      if (!ctx) return;
+      const start = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume || 0.15, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.05);
+    },
+
+    sweep(fromFreq, toFreq, duration, type, volume) {
+      if (this.muted) return;
+      const ctx = this.ensure();
+      if (!ctx) return;
+      const start = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sawtooth';
+      osc.frequency.setValueAtTime(fromFreq, start);
+      osc.frequency.exponentialRampToValueAtTime(toFreq, start + duration);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume || 0.12, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.05);
+    },
+
+    select() {
+      this.tone(520, 0.09, 'triangle', 0.18);
+      this.tone(780, 0.07, 'sine', 0.1, 0.03);
+    },
+
+    deselect() {
+      this.tone(420, 0.08, 'triangle', 0.12);
+    },
+
+    correct() {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        this.tone(f, 0.16, 'sine', 0.16, i * 0.07);
+      });
+    },
+
+    wrong() {
+      this.sweep(220, 110, 0.3, 'sawtooth', 0.12);
+      this.tone(160, 0.22, 'square', 0.06, 0.05);
+    },
+
+    already() {
+      this.tone(440, 0.1, 'square', 0.08);
+      this.tone(440, 0.12, 'square', 0.08, 0.14);
+    },
+
+    shuffle() {
+      this.sweep(300, 900, 0.18, 'triangle', 0.1);
+    },
+
+    join() {
+      this.tone(659.25, 0.12, 'sine', 0.14);
+      this.tone(987.77, 0.18, 'sine', 0.14, 0.1);
+    },
+
+    tick() {
+      this.tone(1200, 0.05, 'square', 0.05);
+    },
+
+    win() {
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+        this.tone(f, 0.28, 'triangle', 0.16, i * 0.11);
+      });
+    },
+
+    lose() {
+      [392, 349.23, 293.66, 261.63].forEach((f, i) => {
+        this.tone(f, 0.3, 'triangle', 0.13, i * 0.16);
+      });
+    },
+  };
+
+  /**
+   * Visual effects helpers (animations + confetti).
+   */
+  const FX = {
+    animate($el, cls) {
+      $el.addClass(cls).one('animationend', function onEnd() {
+        $(this).removeClass(cls);
+      });
+    },
+
+    confettiBurst(x, y, count) {
+      const colors = ['#8b5cf6', '#22d3ee', '#34d399', '#fbbf24', '#f87171', '#f472b6'];
+      for (let i = 0; i < count; i += 1) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const size = 6 + Math.random() * 8;
+        piece.style.width = `${size}px`;
+        piece.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.5)}px`;
+        piece.style.left = `${x}px`;
+        piece.style.top = `${y}px`;
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.setProperty('--dx', `${(Math.random() - 0.5) * 320}px`);
+        piece.style.setProperty('--dy', `${-80 - Math.random() * 240}px`);
+        piece.style.setProperty('--rot', `${(Math.random() - 0.5) * 720}deg`);
+        document.body.appendChild(piece);
+        setTimeout(piece.remove.bind(piece), 1300);
+      }
+    },
+
+    celebrateBoard() {
+      const $letters = $('#mainTable td.letter');
+      $letters.each(function stagger(i) {
+        setTimeout(() => FX.animate($(this), 'celebrate-anim'), i * 60);
+      });
+      const offset = $('#wordArea').offset() || { left: window.innerWidth / 2, top: window.innerHeight / 2 };
+      FX.confettiBurst(offset.left + ($('#wordArea').width() / 2), offset.top + 40, 40);
+      setTimeout(() => FX.confettiBurst(
+        window.innerWidth / 2,
+        window.innerHeight / 2,
+        30,
+      ), 250);
+    },
+  };
+
   const App = {
 
     /**
@@ -29,7 +176,6 @@ jQuery(function fn($) {
      * connects to the server when the page loads for the first time.
      */
     mySocketId: '',
-
     /* *************************************
        *                Setup              *
        ************************************* */
@@ -41,6 +187,7 @@ jQuery(function fn($) {
       App.cacheElements();
       App.showInitScreen();
       App.bindEvents();
+      App.updateSoundIcon();
 
       // Initialize the fastclick library
       FastClick.attach(document.body);
@@ -83,6 +230,23 @@ jQuery(function fn($) {
       App.$doc.on('click', '#recall', App.recallLetters);
       App.$doc.on('click', '#playAgain', App.playAgain);
       App.$doc.on('click', '#mainTable td:not(.empty), #shuffledTable td:not(.empty)', App.handleLetterClick);
+      App.$doc.on('click', '#soundToggle', App.toggleSound);
+    },
+
+    /**
+     * Toggle global sound on/off (persisted in localStorage).
+     */
+    toggleSound() {
+      SoundFX.muted = !SoundFX.muted;
+      window.localStorage.setItem('tt-muted', String(SoundFX.muted));
+      App.updateSoundIcon();
+      if (!SoundFX.muted) SoundFX.select();
+    },
+
+    updateSoundIcon() {
+      $('#soundToggle').toggleClass('muted', SoundFX.muted);
+      $('#iconSoundOn').toggle(!SoundFX.muted);
+      $('#iconSoundOff').toggle(SoundFX.muted);
     },
 
     /* *************************************
@@ -200,11 +364,15 @@ jQuery(function fn($) {
      * Shuffle letters present in hot board
      */
     shuffleLetters() {
+      SoundFX.shuffle();
       const letters = $('#shuffledTable td').toArray();
       App.shuffle(letters);
       for (let i = 0; i < letters.length; i += 1) {
         $('#shuffledTable tr').append(letters[i]);
       }
+      $('#shuffledTable td').each(function stagger(i) {
+        setTimeout(() => FX.animate($(this), 'pop-anim'), i * 40);
+      });
     },
 
     /**
@@ -218,6 +386,7 @@ jQuery(function fn($) {
      * Recall all the entered letters
      */
     recallLetters() {
+      SoundFX.sweep(700, 250, 0.2, 'triangle', 0.1);
       $('#mainTable .letter').each(function iterator() {
         App.swap($(this), $('#shuffledTable .empty:eq(0)'));
       });
@@ -239,9 +408,17 @@ jQuery(function fn($) {
      * Send a letter to main tables
      */
     handleLetterClick() {
-      const thisTableId = $(this).closest('table').attr('id');
+      const $tile = $(this);
+      const thisTableId = $tile.closest('table').attr('id');
       const position = thisTableId === 'mainTable' ? 'last' : 'first';
-      App.swap($(this), $(`div#main table:not(#${thisTableId}) td.empty:${position}`));
+      const $destination = $(`div#main table:not(#${thisTableId}) td.empty:${position}`);
+      App.swap($tile, $destination);
+      if (thisTableId === 'shuffledTable') {
+        SoundFX.select();
+      } else {
+        SoundFX.deselect();
+      }
+      FX.animate($destination, 'pop-anim');
     },
 
     /**
@@ -335,7 +512,6 @@ jQuery(function fn($) {
 
     },
 
-
     /* ***************************
        *        GUEST CODE       *
        *************************** */
@@ -387,7 +563,6 @@ jQuery(function fn($) {
 
     },
 
-
     /* ***********************
        *     UTILITY CODE    *
        *********************** */
@@ -397,8 +572,10 @@ jQuery(function fn($) {
      * @param data {{ word: string, allWordsLength: array }}
      */
     newWord(data) {
+      SoundFX.join();
       $('#wordArea').html(App.$templateGameBoard);
       App.generateBoard(data.word, data.allWordsLength);
+      FX.animate($('#main'), 'pop-anim');
     },
 
     /**
@@ -548,6 +725,7 @@ jQuery(function fn($) {
      * @param data {{ guestName: string, gameId: int, mySocketId: int }}
      */
     guestJoinedRoom(data) {
+      SoundFX.join();
       // When a guest joins a room, do the updateWaitingScreen function.
       // There are two versions of this function: one for the 'host' and
       // another for the 'guest'.
@@ -581,9 +759,14 @@ jQuery(function fn($) {
      */
     wordChecked(data) {
       if (data.incorrectWord === true) {
-        // TODO: handle incorrect word (show red border/animation etc.)
+        SoundFX.wrong();
+        FX.animate($('#mainTable'), 'shake-anim');
+        $('#mainTable td').each(function flash() {
+          FX.animate($(this), 'flash-red');
+        });
       } else if (data.alreadyTaken === true) {
-        // TODO: handle already taken word (highlight the word or something)
+        SoundFX.already();
+        FX.animate($('#mainTable'), 'warn-anim');
       } else {
         data.word = data.word.toUpperCase();
         App.updateScoreBoard(data.scoreBoard);
@@ -595,10 +778,25 @@ jQuery(function fn($) {
 
         const wordIndex = data.index;
         if (wordIndex !== -1) {
-          $('#allWords table').eq(wordIndex).find('td').each(function iterator(i) {
+          const $cells = $('#allWords table').eq(wordIndex).find('td');
+          $cells.each(function iterator(i) {
             $(this).text(data.word[i]).addClass(scorer);
+            setTimeout(() => FX.animate($(this), 'celebrate-anim'), i * 50);
           });
         }
+
+        // Only the player who found the word gets the celebration.
+        if (data.socketId === App.mySocketId) {
+          SoundFX.correct();
+          FX.celebrateBoard();
+        }
+
+        // Bump the scorer's score on the scoreboard.
+        $('.playerScore').each(function bump() {
+          if ($(this).data('socketID') === data.socketId) {
+            FX.animate($(this).find('.score'), 'score-bump');
+          }
+        });
       }
       if (data.socketId === App.mySocketId) {
         App.recallLetters();
@@ -624,7 +822,14 @@ jQuery(function fn($) {
 
       const timerPattern = /^\d+|\d+$/g;
 
-      $('#time').text(time.replace(timerPattern, value => (`0${value}`).slice(-2)));
+      $('#time').text(time.replace(timerPattern, (value) => (`0${value}`).slice(-2)));
+
+      if (data.countdown > 0 && data.countdown <= 10) {
+        SoundFX.tick();
+        $('#time').addClass('urgent');
+      } else {
+        $('#time').removeClass('urgent');
+      }
     },
 
     /**
@@ -636,10 +841,20 @@ jQuery(function fn($) {
       $('#result, #wordArea').toggle();
       if (data.winner === undefined) {
         $('#result #message').text("It's a tie!");
+        SoundFX.already();
       } else if (IO.socket.id === data.winnerID) {
         $('#result #message').text('Congrats! You won the game!');
+        SoundFX.win();
+        FX.confettiBurst(window.innerWidth / 2, window.innerHeight / 3, 80);
+        setTimeout(() => FX.confettiBurst(window.innerWidth / 4, window.innerHeight / 2, 40), 300);
+        setTimeout(() => FX.confettiBurst(
+          (window.innerWidth * 3) / 4,
+          window.innerHeight / 2,
+          40,
+        ), 500);
       } else {
         $('#result #message').text(`${data.winner} won the game!`);
+        SoundFX.lose();
       }
       App.doTextFit('#result #message');
     },

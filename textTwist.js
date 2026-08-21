@@ -15,7 +15,6 @@ const db = {};
 const WORD_LENGTH = 6;
 const TIME_LIMIT = 120;
 
-
 /* *******************************
    *                             *
    *       GAME FUNCTIONS        *
@@ -79,7 +78,7 @@ function prepareGame(data) {
     timeLimit: db[data.gameId].config.timeLimit,
   };
   console.log('gonna begin new game');
-  io.sockets.in(data.gameId).emit('beginNewGame', emitPayload);
+  io.sockets.in(String(data.gameId)).emit('beginNewGame', emitPayload);
 }
 
 /**
@@ -115,7 +114,7 @@ function createNewGame(data) {
 
   // create a client room map
   db.clientRoom = db.clientRoom || {};
-  db.clientRoom[this.id] = thisGameId;
+  db.clientRoom[this.id] = thisGameId.toString();
 
   // Return the Room ID (gameId) and the socket ID (mySocketId) to the client
   this.emit('newGameCreated', { gameId: thisGameId, mySocketId: this.id });
@@ -150,7 +149,7 @@ function getWordData(gameId) {
   const wordData = {
     word: shuffle(randomWord.split('')).join('').toUpperCase(), // Displayed Word
     answers: allWords, // Correct Answers
-    allWordsLength: allWords.map(word => word.length), // Correct Answers
+    allWordsLength: allWords.map((word) => word.length), // Correct Answers
   };
   db[gameId].wordData = wordData;
   return wordData;
@@ -232,7 +231,7 @@ function checkWord(data) {
     emitPayload.scoreBoard = scoreBoard;
   }
 
-  io.sockets.in(data.gameId).emit('wordChecked', emitPayload);
+  io.sockets.in(String(data.gameId)).emit('wordChecked', emitPayload);
 
   if (Object.keys(foundWords).length === wordData.answers.length) {
     endGame.call(this, data.gameId);
@@ -261,8 +260,9 @@ function startTimer(gameId) {
  * Countdown finished and the game begins!
  * @param gameId The Game ID
  */
-function hostStartGame(gameId) {
+function hostStartGame(rawGameId) {
   console.log('Game Started.');
+  const gameId = String(rawGameId);
   db[gameId].gameStarted = true;
   sendWord.call(this, gameId);
   startTimer.call(this, gameId);
@@ -285,7 +285,8 @@ function joinGame(data) {
   const sock = this;
 
   // Look up the room ID in the Socket.IO adapter object.
-  const room = gameSocket.adapter.rooms[data.gameId];
+  const roomId = String(data.gameId);
+  const room = gameSocket.adapter.rooms.get(roomId);
 
   // If the room exists...
   if (room !== undefined) {
@@ -293,15 +294,15 @@ function joinGame(data) {
     const emitPayload = data;
     emitPayload.mySocketId = sock.id;
 
-    db.clientRoom[sock.id] = data.gameId;
+    db.clientRoom[sock.id] = roomId;
 
     // Join the room
-    sock.join(data.gameId);
+    sock.join(roomId);
 
-    console.log(`Player ${data.playerName} joining game: ${data.gameId}`);
+    console.log(`Player ${data.playerName} joining game: ${roomId}`);
 
     // Emit an event notifying the clients that the player has joined the room.
-    io.sockets.in(data.gameId).emit('guestJoinedRoom', emitPayload);
+    io.sockets.in(roomId).emit('guestJoinedRoom', emitPayload);
 
     db[data.gameId].scoreBoard[this.id] = {
       name: data.playerName,
