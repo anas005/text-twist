@@ -1,169 +1,236 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="utf-8" />
 
     <!-- Ensure that everything scales appropriately on a mobile device -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
 
     <!-- Fonts from Google -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap' rel='stylesheet' type='text/css'>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-    <link href="css/styles.css" rel="stylesheet">
-</head>
+    <link href="css/styles.css" rel="stylesheet" />
+  </head>
 
-<body>
-
+  <body>
     <!-- Global sound on/off toggle -->
     <button id="soundToggle" title="Toggle sound" aria-label="Toggle sound">
-        <svg id="iconSoundOn" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-        </svg>
-        <svg id="iconSoundOff" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none">
-            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-        </svg>
+      <svg
+        id="iconSoundOn"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+        />
+      </svg>
+      <svg
+        id="iconSoundOff"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        style="display: none"
+      >
+        <path
+          d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"
+        />
+      </svg>
     </button>
 
+    <!-- How-to-play rules button -->
+    <button id="rulesBtn" title="How to play" aria-label="How to play">
+      ?
+    </button>
+
+    <!-- Theme switcher -->
+    <button id="themeBtn" title="Switch theme" aria-label="Switch theme">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
+
+    <!-- Rules / instructions modal -->
+    <div id="rulesModal">
+      <div id="rulesCard">
+        <h2>How to Play</h2>
+        <ul>
+          <li>
+            Tap letters from the jumbled word to spell out words of
+            <b>3 or more letters</b>.
+          </li>
+          <li>
+            Prefer typing? Use <b>A&ndash;Z</b> to pick letters, <b>Enter</b> to
+            check your word, <b>Space</b> to shuffle the letters, and
+            <b>Backspace</b> to undo.
+          </li>
+          <li>
+            Look for empty slots at the bottom. Those are hints for every valid
+            word hiding in the jumble.
+          </li>
+          <li>
+            Score is <b>1 point per letter</b>, so longer words are worth
+            chasing.
+          </li>
+          <li>Found a word already? It won't count twice.</li>
+          <li>
+            Rack up more points than your opponent before time runs out to win!
+          </li>
+        </ul>
+        <button class="btn" id="rulesClose">Got it!</button>
+      </div>
+    </div>
+
     <div id="gameArea">
-        <!-- This is where the templates defined below will be used -->
+      <!-- This is where the templates defined below will be used -->
     </div>
 
     <!-- Main Title Screen that appears when the page loads for the first time -->
     <script id="intro-screen-template" type="text/template">
 
-        <div class="titleWrapper">
+      <div class="titleWrapper">
 
-            <div class="title">
-                TEXT TWIST
-            </div>
+          <div class="tile-stack">
+              <div class="tile-row row-text">
+                  <span class="ttile t1">T</span><span class="ttile t2">E</span><span class="ttile t1">X</span><span class="ttile t2">T</span>
+              </div>
+              <div class="tile-row row-twist">
+                  <span class="ttile t1">T</span><span class="ttile t2">W</span><span class="ttile t1">I</span><span class="ttile t2">S</span><span class="ttile t1">T</span>
+              </div>
+          </div>
 
-            <div class="buttons">
-                <button id="btnCreateGame" class="btn left">CREATE</button>
-                <button id="btnJoinGame" class="btn right">JOIN</button>
-                <div style="clear:both"></div>
-            </div>
+          <div class="buttons">
+              <button id="btnCreateGame" class="btn left">CREATE</button>
+              <button id="btnJoinGame" class="btn right">JOIN</button>
+              <div style="clear:both"></div>
+          </div>
 
-        </div>
-
+      </div>
     </script>
 
     <!-- This screen appears when a user clicks "CREATE" on the Title Screen -->
     <script id="create-game-template" type="text/template">
-        <div class="createGameWrapper">
+      <div class="createGameWrapper">
 
-            <div class="createRoom">
-                <div class="info">
-                    <label for="inputPlayerName">Your Name:</label>
-                    <input id="inputPlayerName" type="text" />
-                </div>
+          <div class="createRoom">
+              <div class="info">
+                  <label for="inputPlayerName">Your Name:</label>
+                  <input id="inputPlayerName" type="text" />
+              </div>
 
-                <div class="info config">
-                    <div id="wordLengthLabelContainer">
-                        <label for="wordLength">Word Length:</label>
-                        <span class="range-slider__value" id="wordLengthValue">8</span> <span>Letters</span>
-                    </div>
-                    <div id="wordLengthSliderContainer">
-                        <input type="range" min="5" max="8" step="1" id="wordLength" data-for="wordLengthValue">
-                    </div>
-                    <div id="timeLimitLabelContainer">
-                        <label for="timeLimit">Time Limit:</label>
-                        <span class="range-slider__value" id="timeLimitValue">300</span> <span>Seconds</span>
-                    </div>
-                    <div id="timeLimitTextContainer">
-                        <input type="range" min="30" max="300" step="30" id="timeLimit" data-for="timeLimitValue">
-                    </div>
-                </div>
+              <div class="info config">
+                  <div id="wordLengthLabelContainer">
+                      <label for="wordLength">Word Length:</label>
+                      <span class="range-slider__value" id="wordLengthValue">8</span> <span>Letters</span>
+                  </div>
+                  <div id="wordLengthSliderContainer">
+                      <input type="range" min="5" max="8" step="1" id="wordLength" data-for="wordLengthValue">
+                  </div>
+                  <div id="timeLimitLabelContainer">
+                      <label for="timeLimit">Time Limit:</label>
+                      <span class="range-slider__value" id="timeLimitValue">300</span> <span>Seconds</span>
+                  </div>
+                  <div id="timeLimitTextContainer">
+                      <input type="range" min="30" max="300" step="30" id="timeLimit" data-for="timeLimitValue">
+                  </div>
+              </div>
 
-                <div class="info buttons">
-                    <button id="btnCreateRoom" class="btn">Create Room</button>
-                </div>
-            </div>
+              <div class="info buttons">
+                  <button id="btnCreateRoom" class="btn">Create Room</button>
+                  <button id="btnBackToMenu" class="btn">Back</button>
+              </div>
+          </div>
 
-            <div class="wait">
-                <div class="info" id="disconnectMsg">Opponent has left the game.</div>
+          <div class="wait">
+              <div class="info" id="disconnectMsg">Opponent has left the game.</div>
 
-                <div class="info">Wait for the other player to join in your room.</div>
+              <div class="info">Wait for the other player to join in your room.</div>
 
-                <div class="info">They can join by entering the following Game ID:</div>
-                <div id="spanNewGameCode" class="gameId">Error!</div>
+              <div class="info">They can join by entering the following Game ID:</div>
+              <div id="spanNewGameCode" class="gameId">Error!</div>
 
-                <div id="playersWaiting"></div>
+              <div id="playersWaiting"></div>
 
-                <div class="info buttons">
-                    <button id="btnStart" class="btn">Start Game</button>
-                </div>
-            </div>
+              <div class="info buttons">
+                  <button id="btnStart" class="btn">Start Game</button>
+              </div>
+          </div>
 
-        </div>
+      </div>
     </script>
 
     <!-- This screen appears when a player clicks "JOIN" on the Title Screen -->
     <script id="join-game-template" type="text/template">
-        <div class="joinGameWrapper">
-            <div class="info">
-                <label for="inputPlayerName">Your Name:</label>
-                <input id="inputPlayerName" type="text" />
-            </div>
+      <div class="joinGameWrapper">
+          <div class="info">
+              <label for="inputPlayerName">Your Name:</label>
+              <input id="inputPlayerName" type="text" />
+          </div>
 
-            <div class="info">
-                <label for="inputGameId">Game ID:</label>
-                <input id="inputGameId" type="text" />
-            </div>
+          <div class="info">
+              <label for="inputGameId">Game ID:</label>
+              <input id="inputGameId" type="text" />
+          </div>
 
-            <div class="info buttons">
-                <button id="btnReady" class="btn">Ready</button>
-                <div id="guestWaitingMessage">
-                    <p>Joined Game <span id="gameId"></span>. Please wait for game to begin.</p>
-                </div>
-            </div>
-        </div>
+          <div class="info buttons">
+              <button id="btnReady" class="btn">Ready</button>
+              <button id="btnBackToMenu" class="btn">Back</button>
+              <div id="guestWaitingMessage">
+                  <p>Joined Game <span id="gameId"></span>. Please wait for game to begin.</p>
+              </div>
+          </div>
+      </div>
     </script>
 
     <!-- This is the 'Host' screen. It displays the word for each player to match -->
     <script id="host-game-template" type="text/template">
-        <div id="wordArea">
-            <div id="hostWord">5</div>
-        </div>
-        <div id="playerScores">
-            <div id="player1Score" class="playerScore">
-                <span class="score">0</span><span class="playerName Host">Player 1</span>
-            </div>
-            <div id="time">
-                <span></span>
-            </div>
-            <div id="player2Score" class="playerScore">
-                <span class="playerName Guest">Player 2</span><span class="score">0</span>
-            </div>
-        </div>
-        <div id="result">
-            <div class="info" id="message"></div>
-            <button class="btn" id="playAgain">Play Again</button>
-        </div>
+      <div id="wordArea">
+          <div id="hostWord">5</div>
+      </div>
+      <div id="playerScores">
+          <div id="player1Score" class="playerScore">
+              <span class="score">0</span><span class="playerName Host">Player 1</span>
+          </div>
+          <div id="time">
+              <span></span>
+          </div>
+          <div id="player2Score" class="playerScore">
+              <span class="playerName Guest">Player 2</span><span class="score">0</span>
+          </div>
+      </div>
+      <div id="result">
+          <div class="info" id="message"></div>
+          <button class="btn" id="playAgain">Play Again</button>
+      </div>
     </script>
 
     <script id="game-board-template" type="text/template">
-        <div id="main">
-            <table id="mainTable">
-                <tbody>
-                    <tr></tr>
-                </tbody>
-            </table>
-            <br/>
-            <table id="shuffledTable">
-                <tbody>
-                    <tr></tr>
-                </tbody>
-            </table>
-            <div id="buttonsDiv">
-                <button class="boardBtn" id="shuffle">Shuffle</button>
-                <button class="boardBtn" id="check">Check</button>
-                <button class="boardBtn" id="recall">Recall</button>
-            </div>
-        </div>
-        <div id="allWords"></div>
+      <div id="main">
+          <table id="mainTable">
+              <tbody>
+                  <tr></tr>
+              </tbody>
+          </table>
+          <br/>
+          <table id="shuffledTable">
+              <tbody>
+                  <tr></tr>
+              </tbody>
+          </table>
+          <div id="buttonsDiv">
+              <button class="boardBtn" id="shuffle">Shuffle</button>
+              <button class="boardBtn" id="check">Enter</button>
+              <button class="boardBtn" id="recall">Recall</button>
+          </div>
+      </div>
+      <div id="allWords"></div>
     </script>
 
     <!-- JavaScript Libraries -->
@@ -184,9 +251,13 @@
         serve the proper Socket.IO javascript files used by the browser -->
     <script src="/socket.io/socket.io.js"></script>
 
+    <!-- Theme registry + one file per theme (plug in more by adding a script tag) -->
+    <script src="js/themes.js"></script>
+    <script src="js/themes/twilight.js"></script>
+    <script src="js/themes/neon.js"></script>
+    <script src="js/themes/paper.js"></script>
+
     <!-- app.js is where all the client-side TextTwist game logic -->
     <script src="app.js"></script>
-
-</body>
-
+  </body>
 </html>
