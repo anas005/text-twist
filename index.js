@@ -15,8 +15,8 @@ const server = require('http').Server(app);
 // Create a Socket.IO server and attach it to the http server
 const io = require('socket.io')(server);
 
-// Import the Text Twist game file.
-const textTwist = require('./textTwist');
+// Import the game logic.
+const textTwist = require('./game');
 
 // Start listening on $PORT or default port 8080
 const port = process.env.PORT || 8080;

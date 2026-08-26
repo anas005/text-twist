@@ -15,10 +15,6 @@ window.TextTwistThemes.twilight = {
     '--tile2': '#3F3358',
     '--tile-alt': 'transparent',
     '--tile-border': '#4A3B6B',
-    '--host-word-bg': '#59C3A6',
-    '--host-word-text': '#0F2B24',
-    '--guest-word-bg': '#E8AE4D',
-    '--guest-word-text': '#3B2708',
     '--slider-track': '#3A2E56',
     '--outline': '#3A2E56',
 

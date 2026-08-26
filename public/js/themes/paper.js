@@ -15,10 +15,6 @@ window.TextTwistThemes.paper = {
     '--tile2': '#FBF7EC',
     '--tile-alt': '#FFC93C',
     '--tile-border': '#17140F',
-    '--host-word-bg': '#2FAE66',
-    '--host-word-text': '#F5F0E4',
-    '--guest-word-bg': '#3D5AFE',
-    '--guest-word-text': '#F5F0E4',
     '--slider-track': '#B9AF97',
     '--outline': '#B9AF97',
 

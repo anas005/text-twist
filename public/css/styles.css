@@ -809,19 +809,17 @@ td:hover {
   color: var(--muted2);
 }
 
-/* Who solved it: host tint vs guest tint */
-.word-group .box.found.host,
-.word-group .box.bonus.host {
-  background: var(--host-word-bg);
-  border-color: var(--host-word-bg);
-  color: var(--host-word-text);
+/* Who solved it: same colors as the player-name chips above */
+#allWords .word-group .box.host {
+  background: var(--success) !important;
+  border-color: var(--success);
+  color: var(--success-text);
 }
 
-.word-group .box.found.guest,
-.word-group .box.bonus.guest {
-  background: var(--guest-word-bg);
-  border-color: var(--guest-word-bg);
-  color: var(--guest-word-text);
+#allWords .word-group .box.guest {
+  background: var(--primary) !important;
+  border-color: var(--primary);
+  color: var(--primary-text);
 }
 
 /* ******************************

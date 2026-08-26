@@ -15,10 +15,6 @@ window.TextTwistThemes.neon = {
     '--tile2': '#2A3463',
     '--tile-alt': 'transparent',
     '--tile-border': '#39437A',
-    '--host-word-bg': '#8B5CF6',
-    '--host-word-text': '#FFFFFF',
-    '--guest-word-bg': '#22D3EE',
-    '--guest-word-text': '#06283D',
     '--slider-track': '#2A3358',
     '--outline': '#2A3358',
 
