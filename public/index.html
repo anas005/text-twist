@@ -6,8 +6,20 @@
     <!-- Ensure that everything scales appropriately on a mobile device -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <meta name="theme-color" content="#1a1b3a" />
+    <meta name="description" content="Text Twist — multiplayer word game. Twist jumbled letters into words and beat your opponent." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="application-name" content="TextTwist" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TextTwist" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 
     <!-- Fonts from Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -265,5 +277,13 @@
 
     <!-- app.js is where all the client-side TextTwist game logic -->
     <script src="app.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+      }
+    </script>
   </body>
 </html>

@@ -18,13 +18,23 @@ const io = require('socket.io')(server);
 // Import the game logic.
 const textTwist = require('./game');
 
-// Start listening on $PORT or default port 8080
 const port = process.env.PORT || 8080;
-server.listen(port);
-console.log(`server started listening on ${port}`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`server listening on http://0.0.0.0:${port}  (LAN: http://192.168.1.16:${port})`);
+});
 
 // Serve static html, js, css, and image files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.webmanifest')) {
+      res.setHeader('Content-Type', 'application/manifest+json');
+    }
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Service-Worker-Allowed', '/');
+    }
+  },
+}));
 
 // Listen for Socket.IO Connections. Once connected, start the game logic.
 io.on('connection', (socket) => {

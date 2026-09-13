@@ -14,12 +14,18 @@
   --r-lg: 22px;
 }
 
+html {
+  overscroll-behavior-y: none;
+}
+
 html,
 body {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
+  overscroll-behavior-y: none;
+  touch-action: manipulation;
   color: var(--text);
   font-family: var(--font-body);
   background:
@@ -738,6 +744,7 @@ td:hover {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   text-align: center;
   margin: 0 auto;
@@ -1176,6 +1183,7 @@ td:hover {
   width: min(520px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 30px;
   text-align: left;
   border-radius: var(--r-lg);
