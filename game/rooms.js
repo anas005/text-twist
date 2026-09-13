@@ -29,6 +29,8 @@ function createNewGame(ctx, data) {
   db[gameId] = {
     foundWords: {},
     gameStarted: false,
+    awaitingCountdown: false,
+    timer: null,
     scoreBoard: {
       [socket.id]: { name: data.name, score: 0 },
     },
@@ -83,8 +85,10 @@ function resetGame(ctx, roomId) {
 
   if (!db[roomId]) return;
   db[roomId].gameStarted = false;
+  db[roomId].awaitingCountdown = false;
   delete db[roomId].scoreBoard[socket.id];
   clearInterval(db[roomId].timer);
+  db[roomId].timer = null;
 
   // If both the players have left the room, destroy the room!
   if (Object.keys(db[roomId].scoreBoard).length === 0) {

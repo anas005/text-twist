@@ -93,7 +93,17 @@ jQuery(
         );
         App.$doc.on('click', '#soundToggle', App.toggleSound);
         App.$doc.on('click', '#themeBtn', App.cycleTheme);
-        App.$doc.on('click', '#rulesBtn', () => $('#rulesModal').toggleClass('open'));
+        App.$doc.on('click', '#rulesBtn', () => {
+          $('#rulesModal').toggleClass('open');
+          App.closeMenu();
+        });
+        App.$doc.on('click', '#menuToggle', App.toggleMenu);
+        App.$doc.on('click', (e) => {
+          if (!$(e.target).closest('#menuWrap').length) App.closeMenu();
+        });
+        App.$doc.on('keydown', (e) => {
+          if (e.key === 'Escape') App.closeMenu();
+        });
         App.$doc.on('click', '#rulesClose', App.closeRules);
         App.$doc.on('click', '#rulesModal', (e) => {
           if ($(e.target).attr('id') === 'rulesModal') App.closeRules();
@@ -178,6 +188,20 @@ jQuery(
       cycleTheme() {
         SoundFX.select();
         ThemeManager.cycle();
+        App.closeMenu();
+      },
+
+      toggleMenu(e) {
+        if (e) e.stopPropagation();
+        const $pop = $('#menuPop');
+        const open = !$pop.hasClass('open');
+        $pop.toggleClass('open', open);
+        $('#menuToggle').attr('aria-expanded', String(open));
+      },
+
+      closeMenu() {
+        $('#menuPop').removeClass('open');
+        $('#menuToggle').attr('aria-expanded', 'false');
       },
 
       closeRules() {
@@ -191,6 +215,7 @@ jQuery(
         window.localStorage.setItem('tt-muted', String(SoundFX.muted));
         App.updateSoundIcon();
         if (!SoundFX.muted) SoundFX.select();
+        App.closeMenu();
       },
 
       updateSoundIcon() {
@@ -305,6 +330,7 @@ jQuery(
       },
 
       playAgain() {
+        $('#playAgain').prop('disabled', true);
         IO.socket.emit('restartGame', { gameId: App.gameId });
       },
 
@@ -319,6 +345,12 @@ jQuery(
       },
 
       gameCountdown(data) {
+        // Kill any previous countdown — a second beginNewGame
+        // (both players hitting Play Again) must not double-fire.
+        if (App.countdownTimer) {
+          clearInterval(App.countdownTimer);
+          App.countdownTimer = null;
+        }
         // Prepare the game screen with new HTML
         App.$gameArea.html(App.$hostGame);
         $('#result').hide();
@@ -342,7 +374,10 @@ jQuery(
         $el.text(startTime);
         App.doTextFit('#hostWord');
 
-        const timer = setInterval(countItDown, 1000);
+        if (App.countdownTimer) {
+          clearInterval(App.countdownTimer);
+        }
+        App.countdownTimer = setInterval(countItDown, 1000);
 
         function countItDown() {
           startTime -= 1;
@@ -350,7 +385,8 @@ jQuery(
           App.doTextFit('#hostWord');
 
           if (startTime <= 0) {
-            clearInterval(timer);
+            clearInterval(App.countdownTimer);
+            App.countdownTimer = null;
             callback();
           }
         }
@@ -533,11 +569,11 @@ jQuery(
           $('#mainTable td.letter').each(function flash() {
             FX.animate($(this), 'flash-red');
           });
-          App.showToast('Not a word', 'err', scorer);
+          App.showToast(`${String(data.word).toUpperCase()} ❌`, 'err', scorer);
         } else if (data.alreadyTaken === true) {
           SoundFX.already();
           FX.animate($('#mainTable'), 'warn-anim');
-          App.showToast(`${data.word} already found`, 'dup', scorer);
+          App.showToast(`${String(data.word).toUpperCase()} 🔁`, 'dup', scorer);
         } else {
           data.word = data.word.toUpperCase();
           App.updateScoreBoard(data.scoreBoard);

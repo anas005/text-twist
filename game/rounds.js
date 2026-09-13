@@ -26,12 +26,16 @@ function sendDefaultConfig(socket, defaults) {
  */
 function prepareGame(ctx, data) {
   const { io, socket, db } = ctx;
-  const { scoreBoard } = db[data.gameId];
+  const room = db[data.gameId];
+  if (!room) return;
+  room.awaitingCountdown = true;
+  room.gameStarted = false;
+  const { scoreBoard } = room;
   const emitPayload = {
     mySocketId: socket.id,
     gameId: data.gameId,
     scoreBoard,
-    timeLimit: db[data.gameId].config.timeLimit,
+    timeLimit: room.config.timeLimit,
   };
   io.sockets.in(String(data.gameId)).emit('beginNewGame', emitPayload);
 }
@@ -48,8 +52,13 @@ function restartGame(ctx, data) {
     socket.emit('startNewGame', {});
     return;
   }
+  // Both players clicking Play Again emits twice — collapse into one restart.
+  if (room.awaitingCountdown) return;
+  clearInterval(room.timer);
+  room.timer = null;
   room.foundWords = {};
-  room.gameStarted = true;
+  room.awaitingCountdown = true;
+  room.gameStarted = false;
   room.wordData = {};
   Object.keys(room.scoreBoard).forEach((id) => {
     room.scoreBoard[id].score = 0;
@@ -125,11 +134,15 @@ function findWinner(scoreBoard) {
  */
 function endGame(ctx, gameId) {
   const { io, db } = ctx;
+  const room = db[gameId];
+  if (!room || (room.gameStarted === false && !room.timer)) return;
   const {
     scoreBoard, timer, wordData, foundWords,
-  } = db[gameId];
+  } = room;
   clearInterval(timer);
-  db[gameId].gameStarted = false;
+  room.timer = null;
+  room.gameStarted = false;
+  room.awaitingCountdown = false;
   const winner = findWinner(scoreBoard);
   io.sockets.in(gameId).emit('endGame', {
     scoreBoard,
@@ -155,6 +168,7 @@ function checkWord(ctx, data) {
   if (!thisRoom || !thisRoom.gameStarted) return;
 
   const { wordData, foundWords } = thisRoom;
+  if (!wordData || !wordData.answers) return;
 
   const wordIndex = wordData.answers.indexOf(word);
   const emitPayload = { word, index: wordIndex, socketId: socket.id };
@@ -183,6 +197,7 @@ function checkWord(ctx, data) {
  */
 function startTimer(ctx, gameId) {
   const { io, db } = ctx;
+  clearInterval(db[gameId].timer);
   let countdown = db[gameId].config.timeLimit;
   const timer = setInterval(() => {
     countdown -= 1;
@@ -201,7 +216,12 @@ function startTimer(ctx, gameId) {
  */
 function hostStartGame(ctx, rawGameId) {
   const gameId = String(rawGameId);
-  ctx.db[gameId].gameStarted = true;
+  const room = ctx.db[gameId];
+  if (!room) return;
+  // Duplicate countdownFinished (overlapping client countdowns) — ignore.
+  if (room.gameStarted && !room.awaitingCountdown) return;
+  room.awaitingCountdown = false;
+  room.gameStarted = true;
   sendWord(ctx, gameId);
   startTimer(ctx, gameId);
 }
