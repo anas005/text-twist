@@ -94,6 +94,7 @@ jQuery(
         );
         App.$doc.on('click', '#soundToggle', App.toggleSound);
         App.$doc.on('click', '#themeBtn', App.cycleTheme);
+        App.$doc.on('click', '#updateCheckBtn', App.manualUpdateCheck);
         App.$doc.on('click', '#rulesBtn', () => {
           $('#rulesModal').toggleClass('open');
           App.closeMenu();
@@ -190,6 +191,12 @@ jQuery(
         SoundFX.select();
         ThemeManager.cycle();
         App.closeMenu();
+      },
+
+      manualUpdateCheck() {
+        SoundFX.select();
+        App.closeMenu();
+        if (window.PWAUpdate) window.PWAUpdate.checkManual();
       },
 
       toggleMenu(e) {
