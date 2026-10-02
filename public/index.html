@@ -284,13 +284,12 @@
     <script src="js/board.js"></script>
 
     <!-- app.js is where all the client-side TextTwist game logic -->
+    <script src="js/pwa-update.js"></script>
     <script src="app.js"></script>
 
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('sw.js').catch(function () {});
-        });
+      if ('serviceWorker' in navigator && window.PWAUpdate) {
+        window.PWAUpdate.init();
       }
     </script>
   </body>

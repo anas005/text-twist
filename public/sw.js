@@ -1,6 +1,12 @@
 /* eslint-env serviceworker */
 /* eslint-disable no-restricted-globals */
-const CACHE = 'text-twist-v1';
+// Bump APP_VERSION on every deploy that changes cached files.
+// A byte change here is what makes the browser fetch a new worker.
+// NOTE: the placeholder on the next line is replaced by the server
+// (index.js) with the git commit hash at serve time — do not hardcode
+// a version here.
+const APP_VERSION = '__APP_VERSION__';
+const CACHE = `text-twist-${APP_VERSION}`;
 const APP_SHELL = [
   './',
   './index.html',
@@ -15,6 +21,7 @@ const APP_SHELL = [
   './js/fx.js',
   './js/theme-manager.js',
   './js/board.js',
+  './js/pwa-update.js',
   './libs/jquery-2.0.2.min.js',
   './libs/textFit.min.js',
   './libs/fastclick.js',
@@ -25,9 +32,16 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
+  // No skipWaiting here: the new worker waits until the user accepts
+  // the update (SKIP_WAITING message), so a game in progress is
+  // never yanked out from under the players.
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()),
+    caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)),
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
