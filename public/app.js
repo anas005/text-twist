@@ -42,6 +42,7 @@ jQuery(
         }
         App.updateSoundIcon();
         ThemeManager.init();
+        App.initMenuDrag();
 
         // Initialize the fastclick library
         FastClick.attach(document.body);
@@ -197,6 +198,167 @@ jQuery(
         const open = !$pop.hasClass('open');
         $pop.toggleClass('open', open);
         $('#menuToggle').attr('aria-expanded', String(open));
+      },
+
+      /**
+       * Make the ⋮ options button floatable/draggable so it never
+       * permanently covers a player score. Position persists in
+       * localStorage and the popup flips side near the left edge.
+       * A small movement is still treated as a tap (opens the menu).
+       */
+      initMenuDrag() {
+        const wrap = document.getElementById('menuWrap');
+        const handle = document.getElementById('menuToggle');
+        const pop = document.getElementById('menuPop');
+        if (!wrap || !handle) return;
+        // Avoid double-binding (App.init can run more than once).
+        if (wrap.dataset.dragBound === '1') return;
+        wrap.dataset.dragBound = '1';
+
+        const KEY = 'tt-menu-pos';
+        const TAP_SLOP = 7;
+
+        const clampPos = (left, top) => {
+          const w = wrap.offsetWidth || 38;
+          const h = wrap.offsetHeight || 38;
+          return {
+            left: Math.max(
+              4,
+              Math.min(left, window.innerWidth - w - 4),
+            ),
+            top: Math.max(
+              4,
+              Math.min(top, window.innerHeight - h - 4),
+            ),
+          };
+        };
+
+        const alignPop = () => {
+          if (!pop) return;
+          const r = wrap.getBoundingClientRect();
+          const onLeft = r.left + r.width / 2 < window.innerWidth / 2;
+          pop.classList.toggle('align-left', onLeft);
+        };
+
+        const placeAt = (left, top) => {
+          const p = clampPos(left, top);
+          wrap.style.left = `${p.left}px`;
+          wrap.style.top = `${p.top}px`;
+          wrap.style.right = 'auto';
+          wrap.style.bottom = 'auto';
+          alignPop();
+          return p;
+        };
+
+        // Restore saved spot (stored as left/top viewport coords).
+        try {
+          const saved = JSON.parse(
+            window.localStorage.getItem(KEY) || 'null',
+          );
+          if (
+            saved
+            && Number.isFinite(saved.left)
+            && Number.isFinite(saved.top)
+          ) {
+            placeAt(saved.left, saved.top);
+          } else {
+            alignPop();
+          }
+        } catch (err) {
+          alignPop();
+        }
+
+        let startX = 0;
+        let startY = 0;
+        let baseLeft = 0;
+        let baseTop = 0;
+        let dragging = false;
+        let suppressClick = false;
+
+        handle.addEventListener('pointerdown', (e) => {
+          // Only primary button / touch contact starts a drag.
+          if (e.isPrimary === false) return;
+          if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+          const r = wrap.getBoundingClientRect();
+          startX = e.clientX;
+          startY = e.clientY;
+          baseLeft = r.left;
+          baseTop = r.top;
+          dragging = false;
+          suppressClick = false;
+          try {
+            handle.setPointerCapture(e.pointerId);
+          } catch (err) {
+            // No-op: capture is best-effort.
+          }
+        });
+
+        handle.addEventListener('pointermove', (e) => {
+          if (e.isPrimary === false) return;
+          // No buttons held (mouse) and no touch contact: not dragging.
+          if (e.buttons === 0 && e.pointerType === 'mouse') return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (!dragging && Math.hypot(dx, dy) < TAP_SLOP) return;
+          if (!dragging) {
+            dragging = true;
+            suppressClick = true;
+            wrap.classList.add('dragging');
+            App.closeMenu();
+          }
+          e.preventDefault();
+          placeAt(baseLeft + dx, baseTop + dy);
+        });
+
+        const endDrag = (e) => {
+          if (!dragging) return;
+          dragging = false;
+          wrap.classList.remove('dragging');
+          const r = wrap.getBoundingClientRect();
+          const p = clampPos(r.left, r.top);
+          wrap.style.left = `${p.left}px`;
+          wrap.style.top = `${p.top}px`;
+          wrap.style.right = 'auto';
+          wrap.style.bottom = 'auto';
+          alignPop();
+          try {
+            window.localStorage.setItem(KEY, JSON.stringify(p));
+          } catch (err) {
+            // No-op: persistence is best-effort.
+          }
+          // Swallow the click that pointerup would otherwise fire.
+          if (e && e.pointerId !== undefined && handle.hasPointerCapture
+            && handle.hasPointerCapture(e.pointerId)) {
+            try {
+              handle.releasePointerCapture(e.pointerId);
+            } catch (err) {
+              // No-op.
+            }
+          }
+        };
+
+        handle.addEventListener('pointerup', endDrag);
+        handle.addEventListener('pointercancel', endDrag);
+
+        // A real drag must not toggle the menu on release.
+        handle.addEventListener(
+          'click',
+          (e) => {
+            if (suppressClick) {
+              suppressClick = false;
+              e.stopImmediatePropagation();
+              e.preventDefault();
+            }
+          },
+          true,
+        );
+
+        window.addEventListener('resize', () => {
+          const r = wrap.getBoundingClientRect();
+          // Only clamp if previously positioned; otherwise keep CSS default.
+          if (wrap.style.left) placeAt(r.left, r.top);
+          else alignPop();
+        });
       },
 
       closeMenu() {

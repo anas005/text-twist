@@ -1056,8 +1056,9 @@ td:hover {
 
 #menuWrap {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  /* Parked below the 60px scoreboard so it never covers a score. */
+  top: calc(60px + 10px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
   z-index: 100;
   touch-action: manipulation;
 }
@@ -1076,10 +1077,23 @@ td:hover {
   font-size: 1.3em;
   font-weight: 700;
   line-height: 1;
-  cursor: pointer;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Let pointer drags work on touch without scrolling the page. */
+  touch-action: none;
   transition:
     transform 0.15s ease,
     background 0.15s ease;
+}
+
+#menuWrap.dragging {
+  opacity: 0.9;
+}
+
+#menuWrap.dragging #menuToggle {
+  cursor: grabbing;
+  transform: scale(1.1);
 }
 
 #menuToggle:hover {
@@ -1104,6 +1118,13 @@ td:hover {
 
 #menuPop.open {
   display: flex;
+}
+
+/* When the floating wrap is parked on the left half of the screen,
+   open the popup left-aligned so it stays on-screen. */
+#menuPop.align-left {
+  left: 0;
+  right: auto;
 }
 
 #menuPop #soundToggle,
@@ -1403,8 +1424,9 @@ body.theme-paper #result {
   }
 
   #menuWrap {
-    top: 8px;
-    right: 8px;
+    /* Keep clear of the scoreboard on small screens too. */
+    top: calc(60px + 8px + env(safe-area-inset-top, 0px));
+    right: calc(8px + env(safe-area-inset-right, 0px));
   }
 }
 
