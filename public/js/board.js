@@ -43,6 +43,7 @@ window.Board = {
       $row.append($group);
     });
     window.Board.updateLenLabels();
+    window.Board.updateCheckState();
 
     return { maxLen: word.length };
   },
@@ -59,6 +60,14 @@ window.Board = {
       }).length;
       $(this).find('.len-label').text(`${len} LETTERS · ${solved}/${$groups.length}`);
     });
+  },
+
+  /**
+   * Enable the Enter button only while at least one letter is entered.
+   */
+  updateCheckState() {
+    const entered = $('#mainTable .letter').length;
+    $('#check').prop('disabled', entered === 0);
   },
 
   /**
@@ -119,6 +128,7 @@ window.Board = {
     $('#mainTable .letter').each(function iterator() {
       window.Board.swap($(this), $('#shuffledTable .empty:eq(0)'));
     });
+    window.Board.updateCheckState();
   },
 
   /**
@@ -144,6 +154,7 @@ window.Board = {
       window.SoundFX.deselect();
     }
     window.FX.animate($destination, 'pop-anim');
+    window.Board.updateCheckState();
   },
 };
 

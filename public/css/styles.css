@@ -48,6 +48,23 @@ body {
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* No native text selection / callout on touch (long-press selects
+     tiles and scores otherwise); text fields opt back in below. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -564,12 +581,53 @@ input[type="range"]::-moz-range-thumb {
 }
 
 #result #message {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: 1.55em;
-  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   color: var(--text);
+}
+
+#result .cup {
+  font-size: clamp(2.6rem, 14vw, 3.4rem);
+  line-height: 1;
+  animation: cupDrop 0.6s cubic-bezier(0.22, 1.61, 0.36, 1) both;
+}
+
+#result .winner-label {
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#result .winner-name {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 1.8em;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes cupDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-26px) scale(0.6) rotate(-10deg);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.12) rotate(3deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ******************************
@@ -737,6 +795,17 @@ td:hover {
 
 .boardBtn:active {
   transform: translateY(1px);
+}
+
+.boardBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.boardBtn:disabled:hover {
+  transform: none;
+  filter: grayscale(0.5);
 }
 
 /* --- Answer grid: grouped by length --- */
@@ -1483,8 +1552,8 @@ body.theme-paper #result {
     padding: 12px 14px;
   }
 
-  #result #message {
-    font-size: 1.2em;
+  #result .winner-name {
+    font-size: 1.4em;
   }
 
   #menuWrap {

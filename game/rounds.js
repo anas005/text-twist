@@ -154,6 +154,16 @@ function endGame(ctx, gameId) {
 }
 
 /**
+ * Triangular scoring: points grow faster than word length so longer
+ * words pay off — 3 letters = 6 pts, 4 = 10, 5 = 15, 6 = 21, 8 = 36.
+ * @param length Word length
+ * @returns Points awarded
+ */
+function wordPoints(length) {
+  return (length * (length + 1)) / 2;
+}
+
+/**
  * Check a submitted word against the round's answers.
  * @param ctx {{ io, socket, db }}
  * @param data {{ word: string, gameId: int }}
@@ -178,9 +188,11 @@ function checkWord(ctx, data) {
   } else if (foundWords[word] === true) {
     emitPayload.alreadyTaken = true;
   } else {
-    thisRoom.scoreBoard[socket.id].score += word.length;
+    const points = wordPoints(word.length);
+    thisRoom.scoreBoard[socket.id].score += points;
     foundWords[word] = true;
     emitPayload.scoreBoard = thisRoom.scoreBoard;
+    emitPayload.points = points;
   }
 
   io.sockets.in(String(data.gameId)).emit('wordChecked', emitPayload);
@@ -234,6 +246,7 @@ module.exports = {
   sendWord,
   findWinner,
   endGame,
+  wordPoints,
   checkWord,
   startTimer,
   hostStartGame,

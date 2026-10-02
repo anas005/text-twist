@@ -23,6 +23,13 @@ jQuery(
        */
       mySocketId: '',
 
+      /**
+       * Pending toast notifications and whether one is on-screen.
+       * See showToast/pumpToast.
+       */
+      toastQueue: [],
+      toastBusy: false,
+
       /* *************************************
        *                Setup              *
        ************************************* */
@@ -104,19 +111,29 @@ jQuery(
           if (!$(e.target).closest('#menuWrap').length) App.closeMenu();
         });
         App.$doc.on('keydown', (e) => {
-          if (e.key === 'Escape') App.closeMenu();
+          if (e.key === 'Escape') {
+            App.closeMenu();
+            App.hideDefTip();
+            App.lastDefGroup = null;
+          }
         });
         App.$doc.on('click', '#rulesClose', App.closeRules);
         App.$doc.on('click', '#rulesModal', (e) => {
           if ($(e.target).attr('id') === 'rulesModal') App.closeRules();
         });
-        App.$doc.on('mouseenter', '#allWords .word-group', App.showDefTip);
-        App.$doc.on('mouseleave', '#allWords .word-group', App.hideDefTip);
-        App.$doc.on(
-          'click touchstart',
-          '#allWords .word-group',
-          App.toggleDefTip,
-        );
+        // Hover tooltips are desktop-only; touch devices use tap-to-toggle
+        // (a single click binding — binding touchstart too would toggle
+        // twice per tap and strand the popup, since mouseleave never
+        // fires on touch).
+        if (
+          window.matchMedia
+          && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+        ) {
+          App.$doc.on('mouseenter', '#allWords .word-group', App.showDefTip);
+          App.$doc.on('mouseleave', '#allWords .word-group', App.hideDefTip);
+        }
+        App.$doc.on('click', '#allWords .word-group', App.toggleDefTip);
+        App.$doc.on('click', App.dismissDefTip);
       },
 
       /* *************************************
@@ -172,7 +189,8 @@ jQuery(
       },
 
       /**
-       * Tap support for touch devices.
+       * Tap support for touch devices: tap a solved word to toggle its
+       * definition, tap anywhere else (or Escape) to dismiss.
        */
       toggleDefTip(e) {
         if (
@@ -185,6 +203,12 @@ jQuery(
         }
         App.showDefTip(e);
         App.lastDefGroup = $(e.currentTarget);
+      },
+
+      dismissDefTip(e) {
+        if ($(e.target).closest('#allWords .word-group').length > 0) return;
+        App.hideDefTip();
+        App.lastDefGroup = null;
       },
 
       cycleTheme() {
@@ -419,12 +443,25 @@ jQuery(
 
       /**
        * Transient feedback toast anchored below the scorer's name.
+       * Toasts are queued and shown one at a time so rapid successive
+       * scores (e.g. both players finding a word at once) each get
+       * their full display time instead of overwriting each other.
        */
       showToast(text, type, role) {
-        $('.toast').remove();
-        const $anchor = role === 'Host' ? $('#player1Score') : $('#player2Score');
-        const $toast = $('<div></div>').addClass('toast').addClass(type);
-        $('<span class="toast-word"></span>').text(text).appendTo($toast);
+        if (App.toastQueue.length > 3) App.toastQueue.shift();
+        App.toastQueue.push({ text, type, role });
+        App.pumpToast();
+      },
+
+      pumpToast() {
+        if (App.toastBusy) return;
+        const next = App.toastQueue.shift();
+        if (!next) return;
+        App.toastBusy = true;
+
+        const $anchor = next.role === 'Host' ? $('#player1Score') : $('#player2Score');
+        const $toast = $('<div></div>').addClass('toast').addClass(next.type);
+        $('<span class="toast-word"></span>').text(next.text).appendTo($toast);
         $toast.appendTo('body');
 
         const anchorPos = $anchor.offset();
@@ -442,8 +479,17 @@ jQuery(
           });
         }
 
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          $toast.remove();
+          App.toastBusy = false;
+          App.pumpToast();
+        };
         setTimeout(() => {
-          $toast.addClass('out').one('animationend', () => $toast.remove());
+          $toast.addClass('out').one('animationend', finish);
+          setTimeout(finish, 600); // safety net if animationend never fires
         }, 2600);
       },
 
@@ -492,6 +538,9 @@ jQuery(
       },
 
       checkWord() {
+        // Disabled Enter (no letters entered) can still be triggered via
+        // keyboard, since synthetic clicks bypass the disabled state.
+        if ($('#mainTable .letter').length === 0) return;
         IO.socket.emit('checkWord', {
           word: $('#mainTable .letter').text(),
           gameId: App.gameId,
@@ -742,7 +791,7 @@ jQuery(
         } else if (data.alreadyTaken === true) {
           SoundFX.already();
           FX.animate($('#mainTable'), 'warn-anim');
-          App.showToast(`${String(data.word).toUpperCase()} 🔁`, 'dup', scorer);
+          App.showToast(`${String(data.word).toUpperCase()} ⚠️`, 'dup', scorer);
         } else {
           data.word = data.word.toUpperCase();
           App.updateScoreBoard(data.scoreBoard);
@@ -764,16 +813,19 @@ jQuery(
             });
             Board.updateLenLabels();
 
+            // Points come from the server (triangular scoring); fall back
+            // to word length for payloads from older servers.
+            const pts = data.points != null ? data.points : data.word.length;
             if (isMine) {
               App.showToast(
                 isBonus
-                  ? `Twist! ${data.word} +${data.word.length}`
-                  : `${data.word} +${data.word.length}`,
+                  ? `Twist! ${data.word} +${pts}`
+                  : `${data.word} +${pts}`,
                 isBonus ? 'bonus' : 'ok',
                 scorer,
               );
             } else {
-              App.showToast(`${data.word} +${data.word.length}`, 'ok', scorer);
+              App.showToast(`${data.word} +${pts}`, 'ok', scorer);
             }
 
             if (isMine) {
@@ -835,36 +887,41 @@ jQuery(
         const $result = $('#result').detach();
         $('#wordArea').prepend($result);
         $result.show();
+        const $message = $('#result #message').empty();
         if (data.winner === undefined) {
-          $('#result #message').text("It's a tie!");
+          $message.append(
+            $('<div class="cup"></div>').text('\u{1F91D}'),
+            $('<div class="winner-label"></div>').text('Game over'),
+            $('<div class="winner-name"></div>').text("It's a tie!"),
+          );
           SoundFX.already();
-        } else if (IO.socket.id === data.winnerID) {
-          $('#result #message').text('Congrats! You won the game!');
-          SoundFX.win();
-          FX.confettiBurst(window.innerWidth / 2, window.innerHeight / 3, 80);
-          setTimeout(
-            () => FX.confettiBurst(
-              window.innerWidth / 4,
-              window.innerHeight / 2,
-              40,
-            ),
-            300,
-          );
-          setTimeout(
-            () => FX.confettiBurst(
-              (window.innerWidth * 3) / 4,
-              window.innerHeight / 2,
-              40,
-            ),
-            500,
-          );
         } else {
-          $('#result #message').text(`${data.winner} won the game!`);
-          SoundFX.lose();
+          $message.append(
+            $('<div class="cup"></div>').text('\u{1F3C6}'),
+            $('<div class="winner-label"></div>').text('Winner'),
+            $('<div class="winner-name"></div>').text(data.winner),
+          );
+          if (IO.socket.id === data.winnerID) SoundFX.win();
+          else SoundFX.lose();
+          App.winnerConfetti();
         }
         IO.renderAnswerReveal(data.answers || [], data.foundWords || {});
         App.gameOver = true;
-        App.doTextFit('#result #message');
+        App.doTextFit('#result .winner-name');
+      },
+
+      /**
+       * Confetti blasts centered on the winner's name.
+       */
+      winnerConfetti() {
+        const $name = $('#result .winner-name');
+        const pos = $name.offset();
+        if (!pos) return;
+        const cx = pos.left + ($name.outerWidth() || 0) / 2;
+        const cy = pos.top + ($name.outerHeight() || 0) / 2;
+        FX.confettiBurst(cx, cy, 70);
+        setTimeout(() => FX.confettiBurst(cx - 90, cy - 20, 35), 300);
+        setTimeout(() => FX.confettiBurst(cx + 90, cy - 20, 35), 500);
       },
 
       renderAnswerReveal(answers, foundWords) {

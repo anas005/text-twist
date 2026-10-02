@@ -92,13 +92,16 @@ window.PWAUpdate = (function PWAUpdate() {
     const bar = ensureBar();
     const label = document.getElementById('updateBarText');
     const updateBtn = document.getElementById('updateBarBtn');
+    const laterBtn = document.getElementById('updateBarLater');
     label.textContent = text;
     if (updateBtn) updateBtn.hidden = true;
+    if (laterBtn) laterBtn.hidden = true;
     bar.hidden = false;
     setTimeout(() => {
       bar.hidden = true;
       label.textContent = 'New version available';
       if (updateBtn) updateBtn.hidden = false;
+      if (laterBtn) laterBtn.hidden = false;
     }, 2500);
   }
 
