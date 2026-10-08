@@ -1,10 +1,10 @@
 /* eslint-env serviceworker */
 /* eslint-disable no-restricted-globals */
-// Bump APP_VERSION on every deploy that changes cached files.
-// A byte change here is what makes the browser fetch a new worker.
+// APP_VERSION is stamped by the server and changes whenever client files
+// change. A byte change here is what makes the browser fetch a new worker.
 // NOTE: the placeholder on the next line is replaced by the server
-// (index.js) with the git commit hash at serve time — do not hardcode
-// a version here.
+// (index.js) with a hash of the client files at serve time — do not
+// hardcode a version here.
 const APP_VERSION = '__APP_VERSION__';
 const CACHE = `text-twist-${APP_VERSION}`;
 const APP_SHELL = [

@@ -1198,8 +1198,7 @@ td:hover {
 
 #menuPop #soundToggle,
 #menuPop #rulesBtn,
-#menuPop #themeBtn,
-#menuPop #updateCheckBtn {
+#menuPop #themeBtn {
   position: static;
   width: 38px;
   height: 38px;
@@ -1217,8 +1216,7 @@ td:hover {
 
 #soundToggle:hover,
 #rulesBtn:hover,
-#themeBtn:hover,
-#updateCheckBtn:hover {
+#themeBtn:hover {
   transform: scale(1.08);
   background: var(--surface2);
 }
@@ -1245,16 +1243,14 @@ td:hover {
   stroke: var(--text);
 }
 
-#rulesBtn,
-#updateCheckBtn {
+#rulesBtn {
   color: var(--muted);
   font-family: var(--font-display);
   font-size: 1.15em;
   font-weight: 600;
 }
 
-#rulesBtn:hover,
-#updateCheckBtn:hover {
+#rulesBtn:hover {
   color: var(--text);
 }
 

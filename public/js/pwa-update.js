@@ -1,12 +1,12 @@
-/* PWA update manager: auto-check + "update available" toast.
+/* PWA update manager: auto-update check on launch + pill.
  *
  * Flow:
  *  - sw.js installs the new worker but waits (no skipWaiting on install).
  *  - when the new worker reaches "installed" while an old one still
  *    controls the page, we show #updateBar with an Update button.
  *  - Update posts SKIP_WAITING, then controllerchange reloads once.
- *  - re-checks run on load, on return to foreground, and on reconnect;
- *    the ⋮ menu also offers a manual "Check for updates" entry.
+ *  - the check runs once per page load; the browser also re-fetches
+ *    sw.js on every navigation by itself.
  */
 /* eslint-env browser */
 window.PWAUpdate = (function PWAUpdate() {
@@ -80,56 +80,6 @@ window.PWAUpdate = (function PWAUpdate() {
     return registration.update().catch(() => false);
   }
 
-  // True while a new worker is downloaded (installing) or parked (waiting).
-  function pending() {
-    return !!(
-      waitingWorker
-      || (registration && (registration.waiting || registration.installing))
-    );
-  }
-
-  function showTransient(text) {
-    const bar = ensureBar();
-    const label = document.getElementById('updateBarText');
-    const updateBtn = document.getElementById('updateBarBtn');
-    const laterBtn = document.getElementById('updateBarLater');
-    label.textContent = text;
-    if (updateBtn) updateBtn.hidden = true;
-    if (laterBtn) laterBtn.hidden = true;
-    bar.hidden = false;
-    setTimeout(() => {
-      bar.hidden = true;
-      label.textContent = 'New version available';
-      if (updateBtn) updateBtn.hidden = false;
-      if (laterBtn) laterBtn.hidden = false;
-    }, 2500);
-  }
-
-  // Manual "Check for updates": surfaces the update bar when a new
-  // version is found, otherwise flashes a transient status instead.
-  function checkManual() {
-    if (!registration) {
-      showTransient('Updates unavailable');
-      return Promise.resolve(false);
-    }
-    if (navigator.onLine === false) {
-      showTransient('No connection');
-      return Promise.resolve(false);
-    }
-    if (pending()) {
-      showBar();
-      return Promise.resolve(true);
-    }
-    return check().then(() => {
-      // Give updatefound/statechange a beat to report a fresh worker;
-      // the bar appears on its own once it reaches "installed".
-      setTimeout(() => {
-        if (!pending()) showTransient('Up to date');
-      }, 1500);
-      return pending();
-    });
-  }
-
   function init() {
     if (!('serviceWorker' in navigator)) return;
     ensureBar();
@@ -155,11 +105,7 @@ window.PWAUpdate = (function PWAUpdate() {
         })
         .catch(() => {});
     });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') check();
-    });
-    window.addEventListener('online', check);
   }
 
-  return { init, check, checkManual, pending, applyUpdate };
+  return { init, check, applyUpdate };
 }());

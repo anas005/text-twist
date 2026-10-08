@@ -7,7 +7,6 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
 
 // Create a new instance of Express
 const app = express();
@@ -23,38 +22,29 @@ const textTwist = require('./game');
 
 const port = process.env.PORT || 8080;
 
-// App version = git commit hash, injected into sw.js so every deploy
-// changes the worker bytes (which is what triggers a PWA update).
-// Falls back to a content hash when git is unavailable (e.g. production
-// deploys shipped without .git).
+// App version = sha1 over every file under public/, injected into sw.js
+// so any deploy with changed client files changes the worker bytes
+// (which is what triggers a PWA update). Identical redeploys keep the
+// same version, so clients are never nagged spuriously.
+function collectFiles(dir, out) {
+  fs.readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => (a.name < b.name ? -1 : 1))
+    .forEach((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) collectFiles(full, out);
+      else if (entry.isFile()) out.push(full);
+    });
+  return out;
+}
+
 function getAppVersion() {
   try {
-    const hash = execSync('git rev-parse --short HEAD', {
-      cwd: __dirname,
-      timeout: 5000,
-      encoding: 'utf8',
-    }).trim();
-    if (/^[0-9a-f]+$/i.test(hash)) {
-      let suffix = '';
-      try {
-        const dirty = execSync('git status --porcelain', {
-          cwd: __dirname,
-          timeout: 5000,
-          encoding: 'utf8',
-        }).trim();
-        if (dirty) suffix = '-dirty';
-      } catch (err) {
-        // Dirty check is best-effort; ignore failures.
-      }
-      return `${hash}${suffix}`;
-    }
-  } catch (err) {
-    // Fall through to the content-hash fallback below.
-  }
-  try {
     const digest = crypto.createHash('sha1');
-    const files = ['public/sw.js', 'public/app.js', 'public/css/styles.css'];
-    files.forEach((f) => digest.update(fs.readFileSync(path.join(__dirname, f))));
+    const root = path.join(__dirname, 'public');
+    collectFiles(root, []).forEach((full) => {
+      digest.update(path.relative(__dirname, full));
+      digest.update(fs.readFileSync(full));
+    });
     return `content-${digest.digest('hex').slice(0, 8)}`;
   } catch (err) {
     return 'dev';
@@ -67,7 +57,7 @@ server.listen(port, '0.0.0.0', () => {
   console.log(`server listening on http://0.0.0.0:${port}  (LAN: http://192.168.1.16:${port})`);
 });
 
-// Serve sw.js with the commit hash injected: the browser treats any byte
+// Serve sw.js with the content hash injected: the browser treats any byte
 // change as a new worker version, which drives the update toast.
 // Must come before express.static so this handler wins for /sw.js.
 app.get('/sw.js', (req, res) => {
