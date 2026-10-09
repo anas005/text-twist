@@ -1,0 +1,65 @@
+# Build + deploy to Cloud Run (Mumbai) on every push to master.
+# Auth is keyless via Workload Identity Federation — no secrets stored.
+# Public repo: Actions minutes are unlimited.
+name: deploy-gcp
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "package.json"
+      - "package-lock.json"
+      - "index.js"
+      - "game/**"
+      - "lib/**"
+      - "assets/**"
+      - "public/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+env:
+  PROJECT: project-6ae265c6-c402-433c-b68
+  REGION: asia-south1
+  SERVICE: text-twist
+  REPO: cloud-run-source-deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/509238821102/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deploy-text-twist@project-6ae265c6-c402-433c-b68.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image
+        run: |
+          IMG="$REGION-docker.pkg.dev/$PROJECT/$REPO/$SERVICE:${GITHUB_SHA::12}"
+          echo "IMG=$IMG" >> "$GITHUB_ENV"
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -t "$IMG" .
+          docker push "$IMG"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" --image "$IMG" --region "$REGION" \
+            --allow-unauthenticated --port 8080 \
+            --memory 512Mi --cpu 1 --max-instances 1 --session-affinity
+
+      - name: Verify live
+        run: |
+          URL="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
+          echo "URL: $URL"
+          curl -sf --max-time 60 "$URL/health" | grep -q ok
+          curl -sf -o /dev/null --max-time 60 "$URL/"
+          echo "live and healthy"

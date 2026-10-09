@@ -73,6 +73,11 @@ app.get('/version', (req, res) => {
   res.json({ version: APP_VERSION });
 });
 
+// Health check for hosting platforms (Cloud Run verify step).
+app.get('/health', (req, res) => {
+  res.type('text').send('ok');
+});
+
 // Serve static html, js, css, and image files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders(res, filePath) {
